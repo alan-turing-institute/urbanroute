@@ -1,0 +1,23 @@
+language: python
+python:
+  - "3.7"
+cache: pip
+
+jobs:
+    include:
+      - stage: "Tests"                # naming the Tests stage
+        name: "urbanroute"
+        install:
+            # Install requirements and modules
+            - pip install -r containers/requirements.txt
+            - pip install urbanroute
+            - pip install routex
+        script:
+            # Run tests with pytest
+            - python -m pytest tests/test_urbanroute
+            # Check linting with pylint
+            - pylint urbanroute/*
+            # Check black formatting would not make any chages
+            - black --check */
+            # Flake8 performs pyflakes, pycodestyle and McCabe complexity checks
+            - flake8 --ignore=E203, W503
