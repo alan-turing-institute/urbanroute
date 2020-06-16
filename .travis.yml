@@ -10,8 +10,8 @@ jobs:
         install:
             # Install requirements and modules
             - pip install -r requirements.txt
-            - pip install 'urbanroute'
-            - pip install 'routex'
+            - pip install -e urbanroute
+            - pip install -e routex
         script:
             # Run tests with pytest
             - python -m pytest tests/test_urbanroute
