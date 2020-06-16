@@ -9,7 +9,7 @@ jobs:
         name: "urbanroute"
         install:
             # Install requirements and modules
-            - pip install -r containers/requirements.txt
+            - pip install -r requirements.txt
             - pip install urbanroute
             - pip install routex
         script:
