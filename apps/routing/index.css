@@ -1,14 +1,30 @@
 html,body{
+    background-color: #efe9e1;
     margin:0;
     padding:0;
     outline:0;
     font-size: 100%;
     vertical-align: baseline;
-    background: transparent;
     width: 100%;
     height: 100%;
+    display: grid;
+    align-items: center;
+    justify-items: center;
+    overflow: hidden;
 }
 #map{
     width: 100%;
     height: 100%;
+    visibility: hidden;
+    grid-column: 1;
+    grid-row: 1;
+}
+#static{
+    background-color: #efe9e1;
+    background-image: url("https://api.mapbox.com/styles/v1/mapbox/streets-v11/static/-0.118092, 51.509865,10/1280x1280?access_token=pk.eyJ1IjoiamFtZXNjcmFzdGVyIiwiYSI6ImNrYmo0NWlxcTBsaDYycnB2YmU5aTgzN3EifQ.Or9ka8Q8WOKvNEXTznnVFw");
+    width: 1280px;
+    height: 1280px;
+    grid-column: 1;
+    grid-row: 1;
+    /*visibility: hidden;*/
 }
