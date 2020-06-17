@@ -1,5 +1,4 @@
 "use strict";
-
 mapboxgl.accessToken = 'pk.eyJ1IjoiamFtZXNjcmFzdGVyIiwiYSI6ImNrYmo0NWlxcTBsaDYycnB2YmU5aTgzN3EifQ.Or9ka8Q8WOKvNEXTznnVFw';
 let map = new mapboxgl.Map({
     container: 'map',
@@ -25,9 +24,24 @@ map.addControl(new mapboxgl.NavigationControl());
         mapboxgl: mapboxgl
     })
 );*/
-map.addControl(
-    new MapboxDirections({
-        accessToken: mapboxgl.accessToken
-    }),
-    'top-left'
-);
+
+let directionsControl = new MapboxDirections({
+    //accessToken: mapboxgl.accessToken,
+    controls: { inputs: true, instructions: false, profileSwitcher: true }
+});
+
+let start = undefined;
+let destination = undefined;
+//when destination/origin updated on input UI
+directionsControl.on('origin', (type) => { console.log(type); start = type; processRoute() })
+directionsControl.on('destination', (type) => { console.log(type); destination = type; processRoute() })
+//when destination/origin cleared on input UI
+directionsControl.on('clear', (type) => { type == "origin" ? start = undefined : destination = undefined });
+function processRoute() {
+    if (start && destination) {
+        console.log(start.feature.geometry.coordinates);
+        console.log(destination.feature.geometry.coordinates);
+    }
+}
+
+map.addControl(directionsControl, 'top-left');
