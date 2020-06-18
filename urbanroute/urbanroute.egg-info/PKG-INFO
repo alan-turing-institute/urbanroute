@@ -1,0 +1,14 @@
+Metadata-Version: 1.2
+Name: urbanroute
+Version: 0.0.1
+Summary: Urban graphs and routing.
+Home-page: https://github.com/alan-turing-institute/urbanroute
+Author: Patrick O'Hara, James Craster, Oscar Giles
+Author-email: pohara@turing.ac.uk, j.craster@warwick.ac.uk, ogiles@turing.ac.uk
+License: UNKNOWN
+Description: UNKNOWN
+Platform: UNKNOWN
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.6
