@@ -1,6 +1,6 @@
 <!-- Please follow these instructions when creating a pull request -->
 
-<!-- 1. Ensure select the Odysseus project for the pull request on the right hand menu -->
+<!-- 1. Ensure either the urbanroute or frontend project is selected on the right-hard-side -->
 <!-- 2. Name the pull request after the issue. e.g. iss_832_add_weather_data_input ->
 
 # Summary
@@ -11,9 +11,8 @@
 
 - [ ] Bug fix
 - [ ] New feature
-- [ ] Infrastructure 
-- [ ] API
-- [ ] Pipeline
+- [ ] Documentation
+- [ ] New algorithm
 
 ## Additional dependencies
 <!-- List any dependencies added to the project -->
@@ -25,7 +24,6 @@
 How has the code been tested?
 
 <!-- - Added pytest tests -->
-<!-- - Ran code using local database -->
 
 ## Issues fixes
 
@@ -45,7 +43,7 @@ Please ensure you have done the following:
 
 - [ ] Any additional dependencies have been added to the appropriate location (e.g. `setup.py` or `requirements.txt`)
 
-- [ ] Unit tests written and passing on local database. Tests should prove that fix is effective or new feature works as expected
+- [ ] Unit tests written and passing. Tests should prove that fix is effective or new feature works as expected
 
 - [ ] Code needs to run on the cluster? Tag database administrator in the pull request review to configure. 
 
