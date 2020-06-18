@@ -60,13 +60,8 @@ let directionsControl = new MapboxDirections({
 
 let origin = undefined;
 let destination = undefined;
-//when destination/origin updated on input UI, check to see if route can be formed
-directionsControl.on('origin', (location) => { origin = location; processRoute() })
-directionsControl.on('destination', (location) => { destination = location; processRoute() })
-//when destination/origin cleared on input UI, clear route and remove marker
-directionsControl.on('clear', (event) => { event.type == "origin" ? origin = undefined : destination = undefined; map.setLayoutProperty('route', 'visibility', 'none') });
-//if both origin and destination present, draw a route
-function processRoute() {
+//when called from the mapbox plugin, if both origin and destination are present, draw a route
+window.getRoute = function processRoute() {
     if (origin && destination) {
         map.getSource('route').setData({
             'type': 'Feature',
@@ -79,5 +74,13 @@ function processRoute() {
         map.setLayoutProperty('route', 'visibility', 'visible');
     }
 }
+//when destination/origin updated on input UI, check to see if route can be formed
+directionsControl.on('origin', (location) => { origin = location; })
+directionsControl.on('destination', (location) => { destination = location; })
+//when destination/origin cleared on input UI, clear route and remove marker
+directionsControl.on('clear', (event) => { event.type == "origin" ? origin = undefined : destination = undefined; map.setLayoutProperty('route', 'visibility', 'none') });
+
+directionsControl.on('route', (route) => { console.log(route) });
+
 //add direction controls
 map.addControl(directionsControl, 'top-left');

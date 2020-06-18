@@ -348,6 +348,7 @@ export default class MapboxDirections {
 
     this._map.on('touchmove', this.onDragMove);
     this._map.on('touchend', this.onDragUp);
+    console.log('dragdown');
   }
 
   _onDragMove(e) {
@@ -365,6 +366,7 @@ export default class MapboxDirections {
         this.actions.hoverMarker(coords);
         break;
     }
+    console.log('dragmove');
   }
 
   _onDragUp() {
@@ -386,6 +388,7 @@ export default class MapboxDirections {
         }
         break;
     }
+    console.log('dragup');
 
     this.isDragging = false;
     this._map.getCanvas().style.cursor = '';
@@ -395,6 +398,7 @@ export default class MapboxDirections {
 
     this._map.off('mousemove', this.onDragMove);
     this._map.off('mouseup', this.onDragUp);
+    window.getRoute();
   }
 
   // API Methods

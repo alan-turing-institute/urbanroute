@@ -85,6 +85,7 @@ export default class Inputs {
       const coords = e.result.center;
       createOrigin(coords);
       this.animateToCoordinates('origin', coords);
+      window.getRoute();
     });
 
     this.originInput.on('clear', clearOrigin);
@@ -93,6 +94,7 @@ export default class Inputs {
       const coords = e.result.center;
       createDestination(coords);
       this.animateToCoordinates('destination', coords);
+      window.getRoute();
     });
 
     this.destinationInput.on('clear', clearDestination);

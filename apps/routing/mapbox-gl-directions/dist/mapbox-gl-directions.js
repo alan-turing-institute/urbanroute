@@ -55,7 +55,7 @@ polyline.decode = function(str, precision) {
         byte = null,
         latitude_change,
         longitude_change,
-        factor = Math.pow(10, Number.isInteger(precision) ? precision : 5);
+        factor = Math.pow(10, precision || 5);
 
     // Coordinates have variable length when encoded, so just keep
     // track of whether we've hit the end of the string. In each
@@ -104,7 +104,7 @@ polyline.decode = function(str, precision) {
 polyline.encode = function(coordinates, precision) {
     if (!coordinates.length) { return ''; }
 
-    var factor = Math.pow(10, Number.isInteger(precision) ? precision : 5),
+    var factor = Math.pow(10, precision || 5),
         output = encode(coordinates[0][0], 0, factor) + encode(coordinates[0][1], 0, factor);
 
     for (var i = 1; i < coordinates.length; i++) {
@@ -6975,6 +6975,7 @@ var Inputs = function () {
         var coords = e.result.center;
         createOrigin(coords);
         _this.animateToCoordinates('origin', coords);
+        window.getRoute();
       });
 
       this.originInput.on('clear', clearOrigin);
@@ -6983,6 +6984,7 @@ var Inputs = function () {
         var coords = e.result.center;
         createDestination(coords);
         _this.animateToCoordinates('destination', coords);
+        window.getRoute();
       });
 
       this.destinationInput.on('clear', clearDestination);
@@ -7588,6 +7590,7 @@ var MapboxDirections = function () {
 
       this._map.on('touchmove', this.onDragMove);
       this._map.on('touchend', this.onDragUp);
+      console.log('dragdown');
     }
   }, {
     key: '_onDragMove',
@@ -7606,6 +7609,7 @@ var MapboxDirections = function () {
           this.actions.hoverMarker(coords);
           break;
       }
+      console.log('dragmove');
     }
   }, {
     key: '_onDragUp',
@@ -7631,6 +7635,7 @@ var MapboxDirections = function () {
           }
           break;
       }
+      console.log('dragup');
 
       this.isDragging = false;
       this._map.getCanvas().style.cursor = '';
@@ -7640,6 +7645,7 @@ var MapboxDirections = function () {
 
       this._map.off('mousemove', this.onDragMove);
       this._map.off('mouseup', this.onDragUp);
+      window.getRoute();
     }
 
     // API Methods
