@@ -6614,13 +6614,13 @@ var Geocoder = function () {
           if (this.options.flyTo) {
             if (selected.bbox && selected.context && selected.context.length <= 3 || selected.bbox && !selected.context) {
               var bbox = selected.bbox;
-              map.fitBounds([[bbox[0], bbox[1]], [bbox[2], bbox[3]]]);
+              //map.fitBounds([[bbox[0], bbox[1]], [bbox[2], bbox[3]]]);
             } else {
-              map.flyTo({
-                center: selected.center,
-                zoom: this.options.zoom
-              });
-            }
+                /*map.flyTo({
+                  center: selected.center,
+                  zoom: this.options.zoom
+                });*/
+              }
           }
           this._input = selected;
           this.fire('result', { result: selected });
@@ -6930,10 +6930,10 @@ var Inputs = function () {
           features: [origin, destination]
         });
 
-        this._map.fitBounds([[bb[0], bb[1]], [bb[2], bb[3]]], { padding: 80 });
+        //this._map.fitBounds([[bb[0], bb[1]], [bb[2], bb[3]]], { padding: 80 });
       } else {
-        this._map.flyTo({ center: coords });
-      }
+          //this._map.flyTo({ center: coords });
+        }
     }
   }, {
     key: 'onAdd',
@@ -7541,7 +7541,7 @@ var MapboxDirections = function () {
           }
         } else {
           this.actions.setDestinationFromCoordinates(coords);
-          this._map.flyTo({ center: coords });
+          //this._map.flyTo({ center: coords });
         }
       }
     }
@@ -8018,7 +8018,7 @@ var initialState = {
   alternatives: false,
   congestion: false,
   unit: 'imperial',
-  flyTo: true,
+  flyTo: false,
   placeholderOrigin: 'Choose a starting place',
   placeholderDestination: 'Choose destination',
   zoom: 16,

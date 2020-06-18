@@ -49,12 +49,12 @@ export default class Geocoder {
           if (selected.bbox && selected.context && selected.context.length <= 3 ||
             selected.bbox && !selected.context) {
             var bbox = selected.bbox;
-            map.fitBounds([[bbox[0], bbox[1]], [bbox[2], bbox[3]]]);
+            //map.fitBounds([[bbox[0], bbox[1]], [bbox[2], bbox[3]]]);
           } else {
-            map.flyTo({
+            /*map.flyTo({
               center: selected.center,
               zoom: this.options.zoom
-            });
+            });*/
           }
         }
         this._input = selected;

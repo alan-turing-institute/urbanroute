@@ -186,11 +186,11 @@ export default class MapboxDirections {
 
           const features = [];
 
-          const decoded = decode(feature.geometry, 5).map(function(c) {
+          const decoded = decode(feature.geometry, 5).map(function (c) {
             return c.reverse();
           });
 
-          decoded.forEach(function(c, i) {
+          decoded.forEach(function (c, i) {
             var previous = features[features.length - 1];
             var congestion = feature.legs[0].annotation && feature.legs[0].annotation.congestion && feature.legs[0].annotation.congestion[i - 1];
 
@@ -250,11 +250,11 @@ export default class MapboxDirections {
   _clickHandler() {
     var timer = null;
     var delay = 250;
-    return function(event) {
+    return function (event) {
       if (!timer) {
         var singleClickHandler = this._onSingleClick.bind(this);
 
-        timer = setTimeout(function() {
+        timer = setTimeout(function () {
           singleClickHandler(event);
           timer = null;
         }, delay);
@@ -299,7 +299,7 @@ export default class MapboxDirections {
         }
       } else {
         this.actions.setDestinationFromCoordinates(coords);
-        this._map.flyTo({ center: coords });
+        //this._map.flyTo({ center: coords });
       }
     }
   }
@@ -357,13 +357,13 @@ export default class MapboxDirections {
     switch (this.isDragging.layer.id) {
       case 'directions-origin-point':
         this.actions.createOrigin(coords);
-      break;
+        break;
       case 'directions-destination-point':
         this.actions.createDestination(coords);
-      break;
+        break;
       case 'directions-hover-point':
         this.actions.hoverMarker(coords);
-      break;
+        break;
     }
   }
 
@@ -375,16 +375,16 @@ export default class MapboxDirections {
     switch (this.isDragging.layer.id) {
       case 'directions-origin-point':
         this.actions.setOriginFromCoordinates(origin.geometry.coordinates);
-      break;
+        break;
       case 'directions-destination-point':
         this.actions.setDestinationFromCoordinates(destination.geometry.coordinates);
-      break;
+        break;
       case 'directions-hover-point':
         // Add waypoint if a sufficent amount of dragging has occurred.
         if (hoverMarker.geometry && !utils.coordinateMatch(this.isDragging, hoverMarker)) {
           this.actions.addWaypoint(0, hoverMarker);
         }
-      break;
+        break;
     }
 
     this.isDragging = false;
