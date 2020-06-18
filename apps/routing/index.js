@@ -41,11 +41,21 @@ map.on('load', () => {
 map.addControl(new mapboxgl.FullscreenControl());
 //zooming and rotating
 map.addControl(new mapboxgl.NavigationControl());
+//add geolocation
+map.addControl(
+    new mapboxgl.GeolocateControl({
+        positionOptions: {
+            enableHighAccuracy: true
+        },
+        trackUserLocation: true
+    })
+);
 
 //add direction controls
 let directionsControl = new MapboxDirections({
     accessToken: mapboxgl.accessToken,
-    controls: { inputs: true, instructions: false, profileSwitcher: true }
+    controls: { inputs: true, instructions: false, profileSwitcher: true },
+    flyTo: false
 });
 
 let origin = undefined;
