@@ -41,6 +41,10 @@ The minimal set of instructions are:
 ```bash
 git clone https://github.com/alan-turing-institute/clean-air-infrastructure.git
 ```
+TEMPORARY FIX for version mis-match:
+```bash
+git checkout iss_389_requirements
+```
 2. Install cleanair into your conda environment.
 ```bash
 pip install -e containers/cleanair
