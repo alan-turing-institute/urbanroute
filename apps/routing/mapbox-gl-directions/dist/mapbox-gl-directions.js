@@ -7543,6 +7543,7 @@ var MapboxDirections = function () {
           }
         } else {
           this.actions.setDestinationFromCoordinates(coords);
+          window.getRoute();
           //this._map.flyTo({ center: coords });
         }
       }
