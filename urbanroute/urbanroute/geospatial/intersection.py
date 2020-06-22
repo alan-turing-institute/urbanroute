@@ -47,7 +47,7 @@ def update_cost(
     join = gpd.sjoin(edge_df, gdf, how="left")
     logging.info("%s rows in join dataframe", len(join))
 
-    edges_in_join = set([(u,v) for u, v in zip(join["source"], join["target"])])
+    edges_in_join = set([(u, v) for u, v in zip(join["source"], join["target"])])
     for u, v in G.edges():
         assert (u, v) in edges_in_join or (v, u) in edges_in_join
 

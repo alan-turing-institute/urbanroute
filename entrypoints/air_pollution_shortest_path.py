@@ -44,7 +44,9 @@ def main(  # pylint: disable=too-many-arguments
     )
     logger.debug(result_sql)
 
-    gdf = gpd.GeoDataFrame.from_postgis(result_sql, result_query.dbcnxn.engine, crs=4326)
+    gdf = gpd.GeoDataFrame.from_postgis(
+        result_sql, result_query.dbcnxn.engine, crs=4326
+    )
     gdf = gdf.rename(columns=dict(geom="geometry"))
     gdf.crs = "EPSG:4326"
     # gdf = gpd.GeoDataFrame(result_df, crs=4326, geometry="geom")
@@ -60,12 +62,12 @@ def main(  # pylint: disable=too-many-arguments
     logger.debug("Printing basic stats for the graph:")
     logger.debug(ox.stats.basic_stats(G))
 
-
     for i, (u, v, k, data) in enumerate(G.edges(keys=True, data=True)):
         if i > 10:
             break
         print(u, v, k, data)
         print()
+
 
 if __name__ == "__main__":
     typer.run(main)
