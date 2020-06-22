@@ -9,6 +9,7 @@ from cleanair.databases import DBReader
 from cleanair.databases.tables import AirQualityResultTable, HexGrid, MetaPoint
 from cleanair.decorators import db_query
 
+
 class HexGridQuery(DBReader):
     """Query the hex grid air quality results.
 
@@ -46,7 +47,7 @@ class HexGridQuery(DBReader):
             ]
         # select the hexgrid columns
         if join_hexgrid:
-            base_query += [HexGrid.col_id, HexGrid.row_id, HexGrid.geom]
+            base_query += [HexGrid.col_id, HexGrid.row_id, func.ST_AsText(HexGrid.geom)]
 
         # open connection and start the query
         with self.dbcnxn.open_session() as session:
@@ -68,7 +69,11 @@ class HexGridQuery(DBReader):
                 readings = readings.filter(AirQualityResultTable.data_id == data_id)
             # filter by time
             if start_time:
-                readings = readings.filter(AirQualityResultTable.measurement_start_utc >= start_time)
+                readings = readings.filter(
+                    AirQualityResultTable.measurement_start_utc >= start_time
+                )
             if upto_time:
-                readings = readings.filter(AirQualityResultTable.measurement_start_utc < upto_time)
+                readings = readings.filter(
+                    AirQualityResultTable.measurement_start_utc < upto_time
+                )
             return readings
