@@ -1,5 +1,6 @@
 """Find the least cost path from source to target by minimising air pollution."""
 
+from typing import Optional
 import typer
 import geopandas as gpd
 import osmnx as ox
@@ -10,7 +11,7 @@ import routex as rx
 from urbanroute.geospatial import update_cost
 from urbanroute.queries import HexGridQuery
 
-def main(instance_id: str, secretfile: str):
+def main(instance_id: str, secretfile: str, source: Optional[str] = None, target: Optional[str] = None):
     """
     instance_id: Id of the air quality trained model.
 
@@ -24,7 +25,7 @@ def main(instance_id: str, secretfile: str):
     result_df = result_query.query_results(instance_id, join_hexgrid=True, output_type="df")
     logger.debug(result_df.head())
 
-    gdf = gpd.GeoDataFrame(result_df, crs="4326", geometry="geom")
+    gdf = gpd.GeoDataFrame(result_df, crs=4326, geometry="geom")
     logger.info("%s rows in hexgrid results", len(gdf))
 
     G: nx.MultiDiGraph = ox.graph_from_address("British Library")
