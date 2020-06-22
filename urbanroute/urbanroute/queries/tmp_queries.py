@@ -22,6 +22,8 @@ class HexGridQuery(DBReader):
         data_id: Optional[str] = None,
         join_metapoint: Optional[bool] = False,
         join_hexgrid: Optional[bool] = True,
+        start_time: Optional[str] = None,
+        upto_time: Optional[str] = None,
     ) -> Any:
         """Get the predictions from a model given an instance and data id.
 
@@ -30,6 +32,9 @@ class HexGridQuery(DBReader):
             data_id: The id of the dataset the model predicted on.
             join_metapoint: If true, join the result table with the metapoint table on the point_id column.
                 The returned query will also have 'lat', 'lon' and 'source'.
+            join_hexgrid: TODO
+            start_time: Get all results on and after this time. ISO formatted.
+            upto_time: Get all results upto but not including this timestamp. ISO formatted.
         """
         base_query = [AirQualityResultTable]
         # select the source (laqn, hexgrid, etc.), lat and lon
@@ -61,4 +66,9 @@ class HexGridQuery(DBReader):
             # filter by data id
             if data_id:
                 readings = readings.filter(AirQualityResultTable.data_id == data_id)
+            # filter by time
+            if start_time:
+                readings = readings.filter(AirQualityResultTable.measurement_start_utc >= start_time)
+            if upto_time:
+                readings = readings.filter(AirQualityResultTable.measurement_start_utc < upto_time)
             return readings
