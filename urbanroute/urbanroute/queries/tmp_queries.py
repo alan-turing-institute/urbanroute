@@ -47,7 +47,8 @@ class HexGridQuery(DBReader):
             ]
         # select the hexgrid columns
         if join_hexgrid:
-            base_query += [HexGrid.col_id, HexGrid.row_id, func.ST_AsText(HexGrid.geom)]
+            # base_query += [HexGrid.col_id, HexGrid.row_id, func.ST_AsText(HexGrid.geom).label("geom")]
+            base_query += [HexGrid.col_id, HexGrid.row_id, HexGrid.geom]
 
         # open connection and start the query
         with self.dbcnxn.open_session() as session:

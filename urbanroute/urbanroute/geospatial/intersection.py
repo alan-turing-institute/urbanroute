@@ -31,16 +31,15 @@ def update_cost(
             G[u][v][k][key_attr] = k
 
         # create a geodataframe
-        edf = gpd.GeoDataFrame(nx.to_pandas_edgelist(G), geometry="geometry")
-        # edf = edf.dropna(subset=['source', 'target', 'geometry'])
-        edf = edf.dropna(subset=["geometry"])
+        edge_df = gpd.GeoDataFrame(nx.to_pandas_edgelist(G), geometry="geometry")
+        # edge_df = edge_df.dropna(subset=['source', 'target', 'geometry'])
+        edge_df = edge_df.dropna(subset=["geometry"])
 
     # check the crs of geometries
-    if edf["geometry"].crs == None and gdf["geometry"].crs != None:
-        print("Setting edf geom to", gdf["geometry"].crs.copy())
-        edge_df.crs = gdf.crs.copy()
-    elif gdf["geometry"].crs == None and edge_df["geometry"].crs != None:
-        gdf["geometry"].crs = edf["geometry"].crs.copy()
+    if edge_df.crs == None and gdf.crs != None:
+        edge_df.crs = gdf.crs
+    elif gdf.crs == None and edge_df.crs != None:
+        gdf.crs = edge_df.crs
 
     # get intersection of the geodataframes
     join = gpd.sjoin(edge_df, gdf, how="left")

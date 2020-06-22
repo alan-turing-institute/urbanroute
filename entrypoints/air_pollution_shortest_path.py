@@ -28,30 +28,31 @@ def main(  # pylint: disable=too-many-arguments
 
     secretfile: Path to the database secretfile.
     """
-    # Default level is INFO [20], but add one level for each -v given at the command line
-    log_level = logging.INFO - 10 * verbose
-    logging.basicConfig(level=log_level)
     logger = get_logger("Shortest path entrypoint")
-    logger.debug("In debugging mode.")
+    if verbose:
+        logger.level = logging.DEBUG
 
     # TODO change this to a AirQualityResultQuery
     result_query = HexGridQuery(secretfile=secretfile)
     logger.info("Querying results from an air quality model")
-    result_df = result_query.query_results(
+    result_sql = result_query.query_results(
         instance_id,
         join_hexgrid=True,
-        output_type="df",
+        output_type="sql",
         start_time=start_time,
         upto_time=upto_time,
     )
-    logger.debug(result_df.head())
+    logger.debug(result_sql)
 
-    gdf = gpd.GeoDataFrame(result_df, crs=4326, geometry="geom")
+    gdf = gpd.GeoDataFrame.from_postgis(result_sql, result_query.dbcnxn.engine, crs=4326)
+    gdf = gdf.rename(columns=dict(geom="geometry"))
+    gdf.crs = "EPSG:4326"
+    # gdf = gpd.GeoDataFrame(result_df, crs=4326, geometry="geom")
     logger.info("%s rows in hexgrid results", len(gdf))
 
     G: nx.MultiDiGraph = ox.graph_from_address("British Library")
     logger.info(
-        "%s nodes and %s edges in graph.", G.number_of_nodes(), G.number_of_edges
+        "%s nodes and %s edges in graph.", G.number_of_nodes(), G.number_of_edges()
     )
 
     logger.info("Mapping air quality predictions to the road network.")
