@@ -57,7 +57,15 @@ def main(  # pylint: disable=too-many-arguments
 
     logger.info("Mapping air quality predictions to the road network.")
     G = update_cost(G, gdf, cost_attr="NO2_mean", weight_attr="length")
+    logger.debug("Printing basic stats for the graph:")
+    logger.debug(ox.stats.basic_stats(G))
 
+
+    for i, (u, v, k, data) in enumerate(G.edges(keys=True, data=True)):
+        if i > 10:
+            break
+        print(u, v, k, data)
+        print()
 
 if __name__ == "__main__":
     typer.run(main)

@@ -1,7 +1,9 @@
 """Geospatial intersection between graphs and dataframes."""
 
+import logging
 from typing import Optional
 import networkx as nx
+import osmnx as ox
 import geopandas as gpd
 
 
@@ -30,10 +32,9 @@ def update_cost(
         for u, v, k in G.edges(keys=True):
             G[u][v][k][key_attr] = k
 
-        # create a geodataframe
-        edge_df = gpd.GeoDataFrame(nx.to_pandas_edgelist(G), geometry="geometry")
-        # edge_df = edge_df.dropna(subset=['source', 'target', 'geometry'])
-        edge_df = edge_df.dropna(subset=["geometry"])
+        # # create a geodataframe
+        edge_df = ox.graph_to_gdfs(G, nodes=False, fill_edge_geometry=True)
+        edge_df = edge_df.rename(columns=dict(u="source", v="target"))
 
     # check the crs of geometries
     if edge_df.crs == None and gdf.crs != None:
@@ -42,7 +43,13 @@ def update_cost(
         gdf.crs = edge_df.crs
 
     # get intersection of the geodataframes
+    logging.info("%s rows in edge dataframe", len(edge_df))
     join = gpd.sjoin(edge_df, gdf, how="left")
+    logging.info("%s rows in join dataframe", len(join))
+
+    edges_in_join = set([(u,v) for u, v in zip(join["source"], join["target"])])
+    for u, v in G.edges():
+        assert (u, v) in edges_in_join or (v, u) in edges_in_join
 
     # group the edges and take average pollution
     for key, value in (
