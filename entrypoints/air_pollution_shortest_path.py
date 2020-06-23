@@ -10,7 +10,7 @@ from cleanair.databases.queries import AirQualityResultQuery
 from cleanair.loggers import get_logger
 
 from routex.types import Node
-from urbanroute.geospatial import update_cost
+from urbanroute.geospatial import update_cost, ellipse_bounding_box
 from urbanroute.queries import HexGridQuery
 
 
@@ -53,6 +53,10 @@ def main(  # pylint: disable=too-many-arguments
     logger.info("%s rows in hexgrid results", len(gdf))
 
     G: nx.MultiDiGraph = ox.graph_from_address("British Library")
+    if source is not None and target is not None:
+        #snap source and target to the graph
+        #use bounding box of surrounding ellipse to limit graph size
+        pass
     logger.info(
         "%s nodes and %s edges in graph.", G.number_of_nodes(), G.number_of_edges()
     )
