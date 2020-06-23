@@ -10,13 +10,15 @@ jobs:
         install:
             # Install requirements and modules
             - pip install -r requirements.txt
-            # - pip install -e urbanroute
-            # - pip install -e routex
+            - pip install -e urbanroute
+            - pip install -e routex
         script:
             # Run tests with pytest
             - python -m pytest tests/test_urbanroute
             # Check linting with pylint
-            - pylint urbanroute/*
+            - pylint --rcfile .pylintrc urbanroute/*
+            - pylint --rcfile .pylintrc routex/*
+            - pylint --rcfile .pylintrc entrypoints/*
             # Check black formatting would not make any chages
             - black --check */
             # Flake8 performs pyflakes, pycodestyle and McCabe complexity checks
