@@ -1,11 +1,12 @@
 """Find the least cost path from source to target by minimising air pollution."""
 
-from typing import Optional
+from typing import Optional, Tuple
 import logging
 import typer
 import geopandas as gpd
 import osmnx as ox
 import networkx as nx
+import math
 from cleanair.databases.queries import AirQualityResultQuery
 from cleanair.loggers import get_logger
 
@@ -17,9 +18,9 @@ from urbanroute.queries import HexGridQuery
 def main(  # pylint: disable=too-many-arguments
     secretfile: str,
     instance_id: str = "d5e691ef9a1f2e86743f614806319d93e30709fe179dfb27e7b99b9b967c8737",
-    source: Optional[Node] = None,
+    source: Tuple[float, float] = (-0.1215,51.4929),
     start_time: Optional[str] = "2020-01-24T09:00:00",
-    target: Optional[Node] = None,
+    target: Tuple[float, float] = (1,2),
     upto_time: Optional[str] = "2020-01-24T10:00:00",
     verbose: Optional[bool] = False,
 ):
@@ -53,10 +54,29 @@ def main(  # pylint: disable=too-many-arguments
     logger.info("%s rows in hexgrid results", len(gdf))
 
     G: nx.MultiDiGraph = ox.graph_from_address("British Library")
+    ox.plot_graph(G)
     if source is not None and target is not None:
         #snap source and target to the graph
+        minimum = 1000
+        newSource = 0
+        for i,x in enumerate(G.nodes(data=True)):
+            dist = distance(x[1]['x'], x[1]['y'], source[0], source[1])
+            if(dist < minimum):
+                minimum = dist
+                newSource = x
+        minimum = 1000
+        newTarget = 0
+        for i,x in enumerate(G.nodes(data=True)):
+            dist = distance(x[1]['x'], x[1]['y'], target[0], target[1])
+            if(dist < minimum):
+                minimum = dist
+                newTarget = x
+        print(newSource,newTarget)
+
         #use bounding box of surrounding ellipse to limit graph size
-        pass
+        box = ellipse_bounding_box((newSource[1]['x'],newSource[1]['y']),(newTarget[1]['x'],newTarget[1]['y']))
+    
+        #use this bounding box to reduce size of postgis request for hexagons
     logger.info(
         "%s nodes and %s edges in graph.", G.number_of_nodes(), G.number_of_edges()
     )
@@ -71,6 +91,9 @@ def main(  # pylint: disable=too-many-arguments
             break
         print(u, v, k, data)
         print()
+
+def distance(a,b,x,y):
+    return math.sqrt((a-x)**2+(b-y)**2)
 
 
 if __name__ == "__main__":
