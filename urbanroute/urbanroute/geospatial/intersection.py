@@ -37,9 +37,9 @@ def update_cost(
         edge_df = edge_df.rename(columns=dict(u="source", v="target"))
 
     # check the crs of geometries
-    if edge_df.crs == None and gdf.crs != None:
+    if edge_df.crs is None and not gdf.crs is None:
         edge_df.crs = gdf.crs
-    elif gdf.crs == None and edge_df.crs != None:
+    elif gdf.crs is None and not edge_df.crs is None:
         gdf.crs = edge_df.crs
 
     # get intersection of the geodataframes
