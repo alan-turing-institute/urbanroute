@@ -6,6 +6,9 @@ import typer
 import geopandas as gpd
 import osmnx as ox
 import matplotlib.pyplot as plt
+import matplotlib.cm as cm
+import matplotlib.colors as colors
+
 import networkx as nx
 import math
 from cleanair.databases.queries import AirQualityResultQuery
@@ -65,28 +68,31 @@ def main(  # pylint: disable=too-many-arguments
         newSource = ox.distance.get_nearest_node(G,source)
         newTarget = ox.distance.get_nearest_node(G,target)
 
-        fig, ax = ox.plot_graph(G, show=False, close=False)
-        ax.scatter(source[1], source[0], c='red')
-        ax.scatter(target[1], target[0], c='red')
-        ox.plot_graph_route(G,nx.shortest_path(G, newSource, newTarget))
-        print(newSource,newTarget)
+        #fig, ax = ox.plot_graph(G, show=False, close=False)
+        #ax.scatter(source[1], source[0], c='red')
+        #ax.scatter(target[1], target[0], c='red')
+        
+        logger.info(
+            "%s nodes and %s edges in graph.", G.number_of_nodes(), G.number_of_edges()
+        )
+
+        logger.info("Mapping air quality predictions to the road network.")
+        G = update_cost(G, gdf, cost_attr="NO2_mean", weight_attr="length")
+        logger.debug("Printing basic stats for the graph:")
+        logger.debug(ox.stats.basic_stats(G))
+
+        for i, (u, v, k, data) in enumerate(G.edges(keys=True, data=True)):
+            if i > 10:
+                break
+            print(u, v, k, data)
+
+        ev = [G.get_edge_data(edge[0], edge[1], edge[2])['NO2_mean'] ** (1/2) for edge in G.edges]
+        norm = colors.Normalize(vmin=min(ev), vmax=max(ev))
+        cmap = cm.ScalarMappable(norm=norm, cmap=cm.inferno)
+        ec = [cmap.to_rgba(cl) for cl in ev]
+        fig, ax = ox.plot_graph_route(G,nx.dijkstra_path(G, newSource, newTarget, weight='NO2_mean'), edge_color=ec)
         
         #use this bounding box to reduce size of postgis request for hexagons
-    
-    logger.info(
-        "%s nodes and %s edges in graph.", G.number_of_nodes(), G.number_of_edges()
-    )
-
-    logger.info("Mapping air quality predictions to the road network.")
-    G = update_cost(G, gdf, cost_attr="NO2_mean", weight_attr="length")
-    logger.debug("Printing basic stats for the graph:")
-    logger.debug(ox.stats.basic_stats(G))
-
-    for i, (u, v, k, data) in enumerate(G.edges(keys=True, data=True)):
-        if i > 10:
-            break
-        print(u, v, k, data)
-        print()
 
 def distance(a,b,x,y):
     return math.sqrt((a-x)**2+(b-y)**2)
