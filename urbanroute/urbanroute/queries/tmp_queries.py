@@ -9,6 +9,8 @@ from cleanair.databases import DBReader
 from cleanair.databases.tables import AirQualityResultTable, HexGrid, MetaPoint
 from cleanair.decorators import db_query
 
+# pylint: disable=no-member
+
 
 class HexGridQuery(DBReader):
     """Query the hex grid air quality results.
