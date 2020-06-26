@@ -14,15 +14,25 @@ from urbanroute.queries import HexGridQuery
 
 def main(  # pylint: disable=too-many-arguments
     secretfile: str,
-    instance_id: str = "d5e691ef9a1f2e86743f614806319d93e30709fe179dfb27e7b99b9b967c8737",
-    start_time: Optional[str] = "2020-01-24T09:00:00",
-    upto_time: Optional[str] = "2020-01-24T10:00:00",
-    verbose: Optional[bool] = False,
+    instance_id: str = typer.Option(
+        "d5e691ef9a1f2e86743f614806319d93e30709fe179dfb27e7b99b9b967c8737",
+        help="Id of the air quality trained model.",
+    ),
+    start_time: str = typer.Option(
+        "2020-01-24T09:00:00",
+        help="Beginning of air quality predictions (inclusive). ISO formatted string.",
+    ),
+    upto_time: Optional[str] = typer.Option(
+        "2020-01-24T10:00:00",
+        help="End of air quality predictions (exclusive). ISO formatted string.",
+    ),
+    verbose: Optional[bool] = typer.Option(False, help="Output debug logs.",),
 ):
-    """
-    instance_id: Id of the air quality trained model.
+    """Find the least polluted path.
 
-    secretfile: Path to the database secretfile.
+    Arguments:
+
+        SECRETFILE: path to the secretfile.
     """
     logger = get_logger("Shortest path entrypoint")
     if verbose:
@@ -56,12 +66,6 @@ def main(  # pylint: disable=too-many-arguments
     G = update_cost(G, gdf, cost_attr="NO2_mean", weight_attr="length")
     logger.debug("Printing basic stats for the graph:")
     logger.debug(ox.stats.basic_stats(G))
-
-    for i, (u, v, k, data) in enumerate(G.edges(keys=True, data=True)):
-        if i > 10:
-            break
-        print(u, v, k, data)
-        print()
 
 
 if __name__ == "__main__":
