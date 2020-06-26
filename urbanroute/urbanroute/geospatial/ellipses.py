@@ -6,7 +6,10 @@ from descartes import PolygonPatch
 from typing import Tuple, List
 import osmnx as ox
 
-def ellipse_bounding_box(source: Tuple[float, float], dest: Tuple[float, float], tau=1.1) -> List[Tuple[float,float]]:
+
+def ellipse_bounding_box(
+    source: Tuple[float, float], dest: Tuple[float, float], tau=1.1
+) -> List[Tuple[float, float]]:
     """
         Gives bounding box around source and destination nodes.
 
@@ -20,15 +23,18 @@ def ellipse_bounding_box(source: Tuple[float, float], dest: Tuple[float, float],
             includes all paths of length at most: tau multiplied by the distance between the points.
             This inclusion is done by creating an implicit elipse that the source and dest are foci of.
     """
-    theta = math.atan((dest[1]-source[1])/(dest[0]-source[0]))
+    theta = math.atan((dest[1] - source[1]) / (dest[0] - source[0]))
     tau = 1.1
     distance = ox.distance.great_circle_vec(source[1], source[0], dest[1], dest[0])
-    b = (dest[1]+source[1])/2
-    a = (dest[0]+source[0])/2
-    A = (tau/2) * math.sqrt((dest[1] - source[1])**2 + (dest[0] - source[0])**2)
-    B = math.sqrt(A**2 - ((dest[1] - source[1])**2 + (dest[0] - source[0])**2)/4)
-    return [  b + math.sqrt(A**2 * math.sin(theta)**2 + B ** 2 * math.cos(theta)**2),
-              b - math.sqrt(A**2 * math.sin(theta)**2 + B ** 2 * math.cos(theta)**2),
-              a + math.sqrt(A**2 * math.cos(theta)**2 + B ** 2 * math.sin(theta)**2),
-              a - math.sqrt(A**2 * math.cos(theta)**2 + B ** 2 * math.sin(theta)**2)]
-            
+    b = (dest[1] + source[1]) / 2
+    a = (dest[0] + source[0]) / 2
+    A = (tau / 2) * math.sqrt((dest[1] - source[1]) ** 2 + (dest[0] - source[0]) ** 2)
+    B = math.sqrt(
+        A ** 2 - ((dest[1] - source[1]) ** 2 + (dest[0] - source[0]) ** 2) / 4
+    )
+    return [
+        b + math.sqrt(A ** 2 * math.sin(theta) ** 2 + B ** 2 * math.cos(theta) ** 2),
+        b - math.sqrt(A ** 2 * math.sin(theta) ** 2 + B ** 2 * math.cos(theta) ** 2),
+        a + math.sqrt(A ** 2 * math.cos(theta) ** 2 + B ** 2 * math.sin(theta) ** 2),
+        a - math.sqrt(A ** 2 * math.cos(theta) ** 2 + B ** 2 * math.sin(theta) ** 2),
+    ]
