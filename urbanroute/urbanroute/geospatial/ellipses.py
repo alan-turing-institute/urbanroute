@@ -25,7 +25,10 @@ def ellipse_bounding_box(
         includes all paths of length at most: tau multiplied by the distance between the points.
         This inclusion is done by creating an implicit elipse that the source and target are foci of.
     """
-    theta = math.atan((target[1] - source[1]) / (target[0] - source[0]))
+    if((target[0] - source[0]) == 0):
+        theta = math.pi/2
+    else:
+        theta = math.atan((target[1] - source[1]) / (target[0] - source[0]))
     tau = 1.1
     distance = ox.distance.great_circle_vec(source[1], source[0], target[1], target[0])
     center_latitude = (target[1] + source[1]) / 2
