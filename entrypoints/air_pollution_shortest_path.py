@@ -14,6 +14,9 @@ from routex.types import Node
 from urbanroute.geospatial import update_cost, ellipse_bounding_box
 from urbanroute.queries import HexGridQuery
 
+from fastapi import FastAPI
+
+app = FastAPI()
 
 def main(  # pylint: disable=too-many-arguments
     secretfile: str,
@@ -89,3 +92,7 @@ def main(  # pylint: disable=too-many-arguments
 
 if __name__ == "__main__":
     typer.run(main)
+
+@app.get("/route/")
+async def get_route():
+    pass
