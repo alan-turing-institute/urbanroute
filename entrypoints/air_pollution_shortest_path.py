@@ -18,11 +18,11 @@ from urbanroute.queries import HexGridQuery
 def main(  # pylint: disable=too-many-arguments
     secretfile: str,
     instance_id: str = "d5e691ef9a1f2e86743f614806319d93e30709fe179dfb27e7b99b9b967c8737",
-    sourceLat: float = 51.4929,
-    sourceLong: float = -0.1215,
+    source_lat: float = 51.4929,
+    source_long: float = -0.1215,
     start_time: Optional[str] = "2020-01-24T09:00:00",
-    targetLat: float = 51.4929,
-    targetLong: float = -0.2215,
+    target_lat: float = 51.5929,
+    target_long: float = -0.1215,
     upto_time: Optional[str] = "2020-01-24T10:00:00",
     verbose: Optional[bool] = False,
 ):
@@ -35,8 +35,8 @@ def main(  # pylint: disable=too-many-arguments
     targetLong: longitude of the target point.
     
     """
-    source = (sourceLat, sourceLong)
-    target = (targetLat, targetLong)
+    source = (source_lat, source_long)
+    target = (target_lat, target_long)
     logger = get_logger("Shortest path entrypoint")
     if verbose:
         logger.level = logging.DEBUG
