@@ -63,16 +63,22 @@ let destination = undefined;
 //when called from the mapbox plugin, if both origin and destination are present, draw a route
 window.getRoute = function processRoute() {
     if (origin && destination) {
-        map.getSource('route').setData({
-            'type': 'Feature',
-            'properties': {},
-            'geometry': {
-                'type': 'LineString',
-                'coordinates': [origin.feature.geometry.coordinates, destination.feature.geometry.coordinates]
-            }
-        })
-        map.setLayoutProperty('route', 'visibility', 'visible');
-    }
+        console.log(origin.feature.geometry.coordinates);
+        fetch(`http://127.0.0.1:8000/route/?source_lat=${origin.feature.geometry.coordinates[1]}&source_long=${origin.feature.geometry.coordinates[0]}&target_lat=${destination.feature.geometry.coordinates[1]}&target_long=${destination.feature.geometry.coordinates[0]}`)
+            .then(response => response.json()).then(data => {
+                map.setLayoutProperty('route', 'visibility', 'visible');
+                map.getSource('route').setData({
+                    'type': 'Feature',
+                    'properties': {},
+                    'geometry': {
+                        'type': 'LineString',
+                        'coordinates': data.map(point => [point.x, point.y])
+                        //[origin.feature.geometry.coordinates, destination.feature.geometry.coordinates]
+                    }
+                })
+            });
+
+    };
 }
 //when destination/origin updated on input UI, check to see if route can be formed
 directionsControl.on('origin', (location) => { origin = location; })
