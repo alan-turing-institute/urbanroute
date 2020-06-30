@@ -14,6 +14,12 @@ setuptools.setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
-    install_requires=["cleanair==0.0.1", "geopandas==0.7.0", "networkx==2.4", "osmnx==0.14.1",],
+    install_requires=[
+        "cleanair==0.0.1",
+        "geopandas==0.7.0",
+        "networkx==2.4",
+        "osmnx==0.14.1",
+        "sqlalchemy==1.3.11",
+    ],
     python_requires=">=3.6",
 )
