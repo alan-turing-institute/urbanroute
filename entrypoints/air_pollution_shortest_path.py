@@ -16,7 +16,18 @@ from fastapi import FastAPI
 
 app = FastAPI()
 
-def return_route(secretfile:str, instance_id, source_lat: float, source_long: float, start_time:str, target_lat: float, target_long: float, upto_time:str, verbose: bool = True):
+
+def return_route(
+    secretfile: str,
+    instance_id,
+    source_lat: float,
+    source_long: float,
+    start_time: str,
+    target_lat: float,
+    target_long: float,
+    upto_time: str,
+    verbose: bool = True,
+):
     """
     Find the least polluted path.
     
@@ -94,10 +105,22 @@ def main(  # pylint: disable=too-many-arguments
     ),
     verbose: Optional[bool] = typer.Option(False, help="Output debug logs.",),
 ):
-    return_route(secretfile, instance_id, source_lat, source_long, start_time, target_lat, target_long, upto_time, verbose)
+    return_route(
+        secretfile,
+        instance_id,
+        source_lat,
+        source_long,
+        start_time,
+        target_lat,
+        target_long,
+        upto_time,
+        verbose,
+    )
+
 
 if __name__ == "__main__":
     typer.run(main)
+
 
 @app.get("/route/")
 async def get_route(
@@ -107,6 +130,13 @@ async def get_route(
     instance_id: str = "d5e691ef9a1f2e86743f614806319d93e30709fe179dfb27e7b99b9b967c8737"
     start_time: Optional[str] = "2020-01-24T09:00:00"
     upto_time: Optional[str] = "2020-01-24T10:00:00"
-    return return_route(secretfile, instance_id, source_lat, source_long, start_time, target_lat, target_long, upto_time)
-   
-
+    return return_route(
+        secretfile,
+        instance_id,
+        source_lat,
+        source_long,
+        start_time,
+        target_lat,
+        target_long,
+        upto_time,
+    )
