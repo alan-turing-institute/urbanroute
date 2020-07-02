@@ -20,23 +20,33 @@ app = FastAPI()
 
 def main(  # pylint: disable=too-many-arguments
     secretfile: str,
-    instance_id: str = "d5e691ef9a1f2e86743f614806319d93e30709fe179dfb27e7b99b9b967c8737",
+    instance_id: str = typer.Option(
+        "d5e691ef9a1f2e86743f614806319d93e30709fe179dfb27e7b99b9b967c8737",
+        help="Id of the air quality trained model.",
+    ),
     source_lat: float = 51.4929,
     source_long: float = -0.1215,
-    start_time: Optional[str] = "2020-01-24T09:00:00",
+    start_time: Optional[str] = typer.Option(
+        "2020-01-24T09:00:00",
+        help="Beginning of air quality predictions (inclusive). ISO formatted string.",
+    ),
     target_lat: float = 51.5929,
     target_long: float = -0.1215,
-    upto_time: Optional[str] = "2020-01-24T10:00:00",
-    verbose: Optional[bool] = False,
+    upto_time: Optional[str] = typer.Option(
+        "2020-01-24T10:00:00",
+        help="End of air quality predictions (exclusive). ISO formatted string.",
+    ),
+    verbose: Optional[bool] = typer.Option(False, help="Output debug logs.",),
 ):
     """
+    Find the least polluted path.
     secretfile: Path to the database secretfile.
     instance_id: Id of the air quality trained model.
     sourceLat: latitude of the source point.
     sourceLong: longitude of the source point.
     targetLat: latitude of the target point.
     targetLong: longitude of the target point.
-    
+    verbose: enable debug logging.
     """
     source = (source_lat, source_long)
     target = (target_lat, target_long)
@@ -44,7 +54,6 @@ def main(  # pylint: disable=too-many-arguments
     if verbose:
         logger.level = logging.DEBUG
 
-    # TODO change this to a AirQualityResultQuery
     result_query = HexGridQuery(secretfile=secretfile)
     logger.info("Querying results from an air quality model")
     result_sql = result_query.query_results(
