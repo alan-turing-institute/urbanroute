@@ -9,11 +9,9 @@ import networkx as nx
 import math
 from cleanair.databases.queries import AirQualityResultQuery
 from cleanair.loggers import get_logger
-
 from routex.types import Node
 from urbanroute.geospatial import update_cost, ellipse_bounding_box
 from urbanroute.queries import HexGridQuery
-
 from fastapi import FastAPI
 
 app = FastAPI()
@@ -92,11 +90,6 @@ def main(  # pylint: disable=too-many-arguments
         logger.debug("Printing basic stats for the graph:")
         logger.debug(ox.stats.basic_stats(G))
 
-        for i, (u, v, k, data) in enumerate(G.edges(keys=True, data=True)):
-            if i > 10:
-                break
-            print(u, v, k, data)
-
         route = nx.dijkstra_path(G, newSource, newTarget, weight="NO2_mean")
         print(route)
 
@@ -107,7 +100,7 @@ if __name__ == "__main__":
 
 @app.get("/route/")
 async def get_route(
-    source_lat: float, source_long: float, target_lat: float, target_long: float
+    source_lat: float, source_long: float, target_lat: float, target_long: float, verbose: bool = True
 ):
     """
     secretfile: Path to the database secretfile.
@@ -116,7 +109,7 @@ async def get_route(
     sourceLong: longitude of the source point.
     targetLat: latitude of the target point.
     targetLong: longitude of the target point.
-    
+    verbose: enable debug logging.
     """
     secretfile: str = "/home/james/clean-air-infrastructure/.secrets/db_secrets_ad.json"
     instance_id: str = "d5e691ef9a1f2e86743f614806319d93e30709fe179dfb27e7b99b9b967c8737"
@@ -163,11 +156,6 @@ async def get_route(
         G = update_cost(G, gdf, cost_attr="NO2_mean", weight_attr="length")
         logger.debug("Printing basic stats for the graph:")
         logger.debug(ox.stats.basic_stats(G))
-
-        for i, (u, v, k, data) in enumerate(G.edges(keys=True, data=True)):
-            if i > 10:
-                break
-            print(u, v, k, data)
 
         route = nx.dijkstra_path(G, newSource, newTarget, weight="NO2_mean")
         return [G.nodes[r] for r in route]

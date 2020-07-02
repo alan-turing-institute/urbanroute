@@ -1,8 +1,4 @@
-import matplotlib.pyplot as plt
 import math
-from shapely.geometry import Point, Polygon
-import shapely.affinity
-from descartes import PolygonPatch
 from typing import Tuple, List, Optional
 import osmnx as ox
 
