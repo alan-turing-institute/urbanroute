@@ -9,6 +9,8 @@ from cleanair.databases import DBReader
 from cleanair.databases.tables import AirQualityResultTable, HexGrid, MetaPoint
 from cleanair.decorators import db_query
 
+# pylint: disable=no-member
+
 
 class HexGridQuery(DBReader):
     """Query the hex grid air quality results.
@@ -31,7 +33,8 @@ class HexGridQuery(DBReader):
         Args:
             instance_id: The id of the trained model instance.
             data_id: The id of the dataset the model predicted on.
-            join_metapoint: If true, join the result table with the metapoint table on the point_id column.
+            join_metapoint: If true, join the result table with the
+                metapoint table on the point_id column.
                 The returned query will also have 'lat', 'lon' and 'source'.
             join_hexgrid: TODO
             start_time: Get all results on and after this time. ISO formatted.
@@ -47,8 +50,7 @@ class HexGridQuery(DBReader):
             ]
         # select the hexgrid columns
         if join_hexgrid:
-            # base_query += [HexGrid.col_id, HexGrid.row_id, func.ST_AsText(HexGrid.geom).label("geom")]
-            base_query += [HexGrid.col_id, HexGrid.row_id, HexGrid.geom]
+            base_query += [HexGrid.geom]
 
         # open connection and start the query
         with self.dbcnxn.open_session() as session:

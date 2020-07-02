@@ -7,21 +7,25 @@ import osmnx as ox
 import geopandas as gpd
 
 
-def update_cost(
+def update_cost(  # pylint: disable=too-many-arguments
     G: nx.Graph,
     gdf: gpd.GeoDataFrame,
     edge_df: Optional[gpd.GeoDataFrame] = None,
     cost_attr: Optional[str] = "cost",
     weight_attr: Optional[str] = "weight",
     key_attr: Optional[str] = "key",
-):
+) -> nx.Graph:
     """Update the cost of edges the graph from a geo dataframe.
 
     Args:
         G: Input graph. Must have a geometry attribute on the edges.
         gdf: Must contain geometry column and value column.
         edge_df: The edge geo dataframe of the graph.
-        weight: Name of the weight attribute. Default is 'weight'.
+
+    Other Args:
+        cost_attr: Name of the cost function.
+        weight_attr: Name of the weight function.
+        key_attr: Name of the key for multi graphs.
 
     Returns:
         Graph with updated cost attribute.
@@ -37,9 +41,9 @@ def update_cost(
         edge_df = edge_df.rename(columns=dict(u="source", v="target"))
 
     # check the crs of geometries
-    if edge_df.crs == None and gdf.crs != None:
+    if edge_df.crs is None and not gdf.crs is None:
         edge_df.crs = gdf.crs
-    elif gdf.crs == None and edge_df.crs != None:
+    elif gdf.crs is None and not edge_df.crs is None:
         gdf.crs = edge_df.crs
 
     # get intersection of the geodataframes
@@ -47,7 +51,7 @@ def update_cost(
     join = gpd.sjoin(edge_df, gdf, how="left")
     logging.info("%s rows in join dataframe", len(join))
 
-    edges_in_join = set([(u, v) for u, v in zip(join["source"], join["target"])])
+    edges_in_join = zip(join["source"], join["target"])
     for u, v in G.edges():
         assert (u, v) in edges_in_join or (v, u) in edges_in_join
 

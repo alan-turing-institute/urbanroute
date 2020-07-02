@@ -3,20 +3,37 @@ python:
   - "3.8"
 cache: pip
 
+install:
+
 jobs:
     include:
       - stage: "Tests"                # naming the Tests stage
         name: "urbanroute"
         install:
+            - wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
+            - bash miniconda.sh -b -p $HOME/miniconda
+            - source "$HOME/miniconda/etc/profile.d/conda.sh"
+            - hash -r
+            - conda config --set always_yes yes --set changeps1 no
+            - conda update -q conda
+            # Useful for debugging any issues with conda
+            - conda info -a
+            # Replace dep1 dep2 ... with your dependencies
+            - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION
+            - conda activate test-environment
+            - conda install -c conda-forge osmnx
             # Install requirements and modules
             - pip install -r requirements.txt
             # - pip install -e urbanroute
-            # - pip install -e routex
+            - pip install sqlalchemy==1.3.11
+            - pip install -e routex
         script:
             # Run tests with pytest
-            - python -m pytest tests/test_urbanroute
+            # - python -m pytest tests/test_urbanroute
             # Check linting with pylint
-            - pylint urbanroute/*
+            - pylint --rcfile .pylintrc urbanroute/*
+            - pylint --rcfile .pylintrc routex/*
+            - pylint --rcfile .pylintrc entrypoints/*
             # Check black formatting would not make any chages
             - black --check */
             # Flake8 performs pyflakes, pycodestyle and McCabe complexity checks
