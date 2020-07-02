@@ -1,6 +1,7 @@
 
 # python
 __pycache__
+*.egg-info
 
 # misc
 .vscode

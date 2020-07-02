@@ -10,6 +10,8 @@ conda create -n urbanroute python=3.8
 conda activate urbanroute
 ```
 
+If you only want to run our routing algorithms without real-world data, skip straight to [Install routex](#install-routex).
+
 ### Install urbanroute
 
 The `urbanroute` package is intended to create graphs of urban networks with variables
@@ -27,6 +29,31 @@ You can use pip to do the rest:
 pip install -r requirements.txt     # developer tools
 pip install -e urbanroute
 ```
+
+#### Install cleanair
+
+To connect to the database of model predictions requires the [cleanair](https://github.com/alan-turing-institute/clean-air-infrastructure) package.
+You should refer to the [README](https://github.com/alan-turing-institute/clean-air-infrastructure) for a full list of instructions to setup the cleanair repo.
+
+The minimal set of instructions are:
+
+1. Clone the repository:
+```bash
+git clone https://github.com/alan-turing-institute/clean-air-infrastructure.git
+```
+TEMPORARY FIX for version mis-match:
+```bash
+git checkout iss_389_requirements
+```
+2. Install cleanair into your conda environment.
+```bash
+pip install -e containers/cleanair
+```
+
+To connect to the database you must:
+
+3. [Login to azure](https://github.com/alan-turing-institute/clean-air-infrastructure#login-to-azure).
+4. [Access the cleanair production database](https://github.com/alan-turing-institute/clean-air-infrastructure#access-cleanair-production-database).
 
 ### Install routex
 
