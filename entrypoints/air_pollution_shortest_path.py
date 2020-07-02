@@ -18,6 +18,7 @@ from fastapi import FastAPI
 
 app = FastAPI()
 
+
 def main(  # pylint: disable=too-many-arguments
     secretfile: str,
     instance_id: str = typer.Option(
@@ -95,15 +96,19 @@ def main(  # pylint: disable=too-many-arguments
             if i > 10:
                 break
             print(u, v, k, data)
-        
+
         route = nx.dijkstra_path(G, newSource, newTarget, weight="NO2_mean")
         print(route)
+
 
 if __name__ == "__main__":
     typer.run(main)
 
+
 @app.get("/route/")
-async def get_route(source_lat:float, source_long:float,target_lat:float,target_long:float):
+async def get_route(
+    source_lat: float, source_long: float, target_lat: float, target_long: float
+):
     """
     secretfile: Path to the database secretfile.
     instance_id: Id of the air quality trained model.
@@ -113,7 +118,7 @@ async def get_route(source_lat:float, source_long:float,target_lat:float,target_
     targetLong: longitude of the target point.
     
     """
-    secretfile:str = "/home/james/clean-air-infrastructure/.secrets/db_secrets_ad.json"
+    secretfile: str = "/home/james/clean-air-infrastructure/.secrets/db_secrets_ad.json"
     instance_id: str = "d5e691ef9a1f2e86743f614806319d93e30709fe179dfb27e7b99b9b967c8737"
     start_time: Optional[str] = "2020-01-24T09:00:00"
     upto_time: Optional[str] = "2020-01-24T10:00:00"
@@ -159,10 +164,10 @@ async def get_route(source_lat:float, source_long:float,target_lat:float,target_
         logger.debug("Printing basic stats for the graph:")
         logger.debug(ox.stats.basic_stats(G))
 
-        for i, (u, v, k, data) in enumerate(G.edges(keys=True, data=True)):  
+        for i, (u, v, k, data) in enumerate(G.edges(keys=True, data=True)):
             if i > 10:
                 break
             print(u, v, k, data)
-        
+
         route = nx.dijkstra_path(G, newSource, newTarget, weight="NO2_mean")
         return [G.nodes[r] for r in route]

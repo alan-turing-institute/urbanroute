@@ -8,7 +8,7 @@ import osmnx as ox
 
 
 def ellipse_bounding_box(
-    source: Tuple[float, float], target: Tuple[float, float], tau: Optional[float]=1.1
+    source: Tuple[float, float], target: Tuple[float, float], tau: Optional[float] = 1.1
 ) -> List[float]:
     """
     Gives bounding box around source and targetination nodes.
@@ -25,22 +25,41 @@ def ellipse_bounding_box(
         includes all paths of length at most: tau multiplied by the distance between the points.
         This inclusion is done by creating an implicit elipse that the source and target are foci of.
     """
-    if((target[0] - source[0]) == 0):
-        theta = math.pi/2
+    if (target[0] - source[0]) == 0:
+        theta = math.pi / 2
     else:
         theta = math.atan((target[1] - source[1]) / (target[0] - source[0]))
     tau = 1.1
     distance = ox.distance.great_circle_vec(source[1], source[0], target[1], target[0])
     center_latitude = (target[1] + source[1]) / 2
     center_longitude = (target[0] + source[0]) / 2
-    #here we define an ellipse with the source and target points as foci
-    major_axis = (tau / 2) * math.sqrt((target[1] - source[1]) ** 2 + (target[0] - source[0]) ** 2)
+    # here we define an ellipse with the source and target points as foci
+    major_axis = (tau / 2) * math.sqrt(
+        (target[1] - source[1]) ** 2 + (target[0] - source[0]) ** 2
+    )
     minor_axis = math.sqrt(
-        major_axis ** 2 - ((target[1] - source[1]) ** 2 + (target[0] - source[0]) ** 2) / 4
+        major_axis ** 2
+        - ((target[1] - source[1]) ** 2 + (target[0] - source[0]) ** 2) / 4
     )
     return [
-        center_latitude + math.sqrt(major_axis ** 2 * math.sin(theta) ** 2 + minor_axis ** 2 * math.cos(theta) ** 2),
-        center_latitude - math.sqrt(major_axis ** 2 * math.sin(theta) ** 2 + minor_axis ** 2 * math.cos(theta) ** 2),
-        center_longitude + math.sqrt(major_axis ** 2 * math.cos(theta) ** 2 + minor_axis ** 2 * math.sin(theta) ** 2),
-        center_longitude - math.sqrt(major_axis ** 2 * math.cos(theta) ** 2 + minor_axis ** 2 * math.sin(theta) ** 2),
+        center_latitude
+        + math.sqrt(
+            major_axis ** 2 * math.sin(theta) ** 2
+            + minor_axis ** 2 * math.cos(theta) ** 2
+        ),
+        center_latitude
+        - math.sqrt(
+            major_axis ** 2 * math.sin(theta) ** 2
+            + minor_axis ** 2 * math.cos(theta) ** 2
+        ),
+        center_longitude
+        + math.sqrt(
+            major_axis ** 2 * math.cos(theta) ** 2
+            + minor_axis ** 2 * math.sin(theta) ** 2
+        ),
+        center_longitude
+        - math.sqrt(
+            major_axis ** 2 * math.cos(theta) ** 2
+            + minor_axis ** 2 * math.sin(theta) ** 2
+        ),
     ]
