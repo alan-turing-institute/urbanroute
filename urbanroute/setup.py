@@ -20,7 +20,7 @@ setuptools.setup(
         "networkx==2.4",
         "osmnx==0.14.1",
         "sqlalchemy==1.3.11",
-        "fastapi",
+        "fastapi==0.58.1",
     ],
     python_requires=">=3.6",
 )
