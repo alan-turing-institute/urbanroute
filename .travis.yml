@@ -23,6 +23,7 @@ jobs:
             - conda activate test-environment
             - conda install -c conda-forge osmnx
             # Install requirements and modules
+            - pip install "git+https://urbanrouting-ci:$CLEANAIRTOKEN@github.com/alan-turing-institute/clean-air-infrastructure.git/#egg=pkg&subdirectory=containers/cleanair"
             - pip install -r requirements.txt
             # - pip install -e urbanroute
             - pip install sqlalchemy==1.3.11
