@@ -9,7 +9,7 @@ jobs:
         name: "urbanroute"
         install:
             # Install requirements and modules
-            - pip install 'git+https://$CLEANAIRTOKEN@github.com/alan-turing-institute/clean-air-infrastructure.git@containers/cleanair'  
+            - pip install "git+https://urbanrouting-ci:$CLEANAIRTOKEN@github.com/alan-turing-institute/clean-air-infrastructure.git/#egg=pkg&subdirectory=containers/cleanair"
             - pip install -r requirements.txt
             # - pip install -e urbanroute
             # - pip install -e routex
