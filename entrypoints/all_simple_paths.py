@@ -13,6 +13,8 @@ from cleanair.loggers import get_logger
 from urbanroute.geospatial import update_cost, ellipse_bounding_box
 from urbanroute.queries import HexGridQuery
 
+# pylint: disable=duplicate-code
+
 
 def load_graph(
     secretfile: str,
@@ -154,7 +156,7 @@ def main(  # pylint: disable=too-many-arguments
             vmin=min([edge[2]["freq"] for edge in G.edges.data()]),
             vmax=max([edge[2]["freq"] for edge in G.edges.data()]),
         ),
-        cmap=cm.inferno,
+        cmap=cm.get_cmap("inferno"),
     )
     ox.plot_graph(
         G,
