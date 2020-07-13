@@ -63,6 +63,12 @@ The `routex` package consists of the routing algorithms themselves. Install with
 pip install -e routex
 ```
 
+### Run the urbanroute api
+Run the urbanroute api by running fast api:
+```cd entrypoints
+uvicorn air_pollution_shortest_path:APP
+```
+Making a get request to the /route/ API route with defined source and target coordinates will return a route as a list of coordinates from the source to the target.
 ## Developer guide
 
 ### Style guide
