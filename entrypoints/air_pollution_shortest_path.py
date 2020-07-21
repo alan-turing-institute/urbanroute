@@ -2,16 +2,47 @@
 
 from typing import Tuple, Optional
 import logging
+import time
 import typer
 import geopandas as gpd
 import osmnx as ox
 import networkx as nx
+from graph_tool.all import *
 from fastapi import FastAPI
 from cleanair.loggers import get_logger
 from urbanroute.geospatial import update_cost, ellipse_bounding_box
 from urbanroute.queries import HexGridQuery
 
+
 APP = FastAPI()
+logger = get_logger("Shortest path entrypoint")
+logger.setLevel(logging.DEBUG)
+print("Loading full graph of London...")
+start = time.time()
+G = load_graph("../graphs/London.graphml")
+print("Graph loaded in", time.time() - start, "seconds")
+logger.info("%s nodes and %s edges in the graph.", G.num_vertices, G.num_edges)
+print("Loading air pollution results")
+secretfile: str = "/home/james/clean-air-infrastructure/.secrets/db_secrets_ad.json"
+instance_id: str = "d5e691ef9a1f2e86743f614806319d93e30709fe179dfb27e7b99b9b967c8737"
+start_time: Optional[str] = "2020-01-24T09:00:00"
+upto_time: Optional[str] = "2020-01-24T10:00:00"
+result_query = HexGridQuery(secretfile=secretfile)
+logger.info("Querying results from an air quality model")
+result_sql = result_query.query_results(
+    instance_id,
+    join_hexgrid=True,
+    output_type="sql",
+    start_time=start_time,
+    upto_time=upto_time,
+)
+logger.debug(result_sql)
+gdf = gpd.GeoDataFrame.from_postgis(result_sql, result_query.dbcnxn.engine, crs=4326)
+gdf = gdf.rename(columns=dict(geom="geometry"))
+gdf.crs = "EPSG:4326"
+# gdf = gpd.GeoDataFrame(result_df, crs=4326, geometry="geom")
+logger.info("%s rows in hexgrid results", len(gdf))
+astar_search(G,)
 
 
 def return_route(
@@ -31,39 +62,18 @@ def return_route(
     target: (target latitude, target longitude) for target point.
     verbose: enable debug logging.
     """
-    logger = get_logger("Shortest path entrypoint")
-    if verbose:
-        logger.setLevel(logging.DEBUG)
-    result_query = HexGridQuery(secretfile=secretfile)
-    logger.info("Querying results from an air quality model")
-    result_sql = result_query.query_results(
-        instance_id,
-        join_hexgrid=True,
-        output_type="sql",
-        start_time=start_time,
-        upto_time=upto_time,
-    )
-    logger.debug(result_sql)
-
-    gdf = gpd.GeoDataFrame.from_postgis(
-        result_sql, result_query.dbcnxn.engine, crs=4326
-    )
-    gdf = gdf.rename(columns=dict(geom="geometry"))
-    gdf.crs = "EPSG:4326"
-    # gdf = gpd.GeoDataFrame(result_df, crs=4326, geometry="geom")
-    logger.info("%s rows in hexgrid results", len(gdf))
-
     # use bounding box of surrounding ellipse to limit graph size
-    box = ellipse_bounding_box((source[1], source[0]), (target[1], target[0]))
-    G: nx.MultiDiGraph = ox.graph_from_bbox(box[0], box[1], box[2], box[3])
-    logger.info(
-        "%s nodes and %s edges in graph.", G.number_of_nodes(), G.number_of_edges()
-    )
+    # box = ellipse_bounding_box((source[1], source[0]), (target[1], target[0]))
+    # G: nx.MultiDiGraph = ox.graph_from_bbox(box[0], box[1], box[2], box[3])
+    # logger.info(
+    # "%s nodes and %s edges in graph.", G.number_of_nodes(), G.number_of_edges()
+    # )
 
     logger.info("Mapping air quality predictions to the road network.")
     G = update_cost(G, gdf, cost_attr="NO2_mean", weight_attr="length")
     logger.debug("Printing basic stats for the graph:")
     logger.debug(ox.stats.basic_stats(G))
+    start = time.time()
 
     route = nx.dijkstra_path(
         G,
@@ -71,6 +81,7 @@ def return_route(
         ox.distance.get_nearest_node(G, target),
         weight="NO2_mean",
     )
+    print(time.time() - start)
     return [G.nodes[r] for r in route]
 
 
