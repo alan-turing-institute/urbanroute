@@ -4,6 +4,7 @@ from typing import Tuple, Optional
 import logging
 import time
 import typer
+import math
 import geopandas as gpd
 import osmnx as ox
 import networkx as nx
@@ -17,53 +18,36 @@ from urbanroute.queries import HexGridQuery
 APP = FastAPI()
 logger = get_logger("Shortest path entrypoint")
 logger.setLevel(logging.DEBUG)
-print("Loading full graph of London...")
+print("Loading graph of London...")
 start = time.time()
 G = load_graph("../graphs/London.gt")
 print("Graph loaded in", time.time() - start, "seconds")
 logger.info("%s nodes and %s edges in the graph.", G.num_vertices, G.num_edges)
-print("Loading air pollution results")
-secretfile: str = "/home/james/clean-air-infrastructure/.secrets/db_secrets_ad.json"
-instance_id: str = "d5e691ef9a1f2e86743f614806319d93e30709fe179dfb27e7b99b9b967c8737"
-start_time: Optional[str] = "2020-01-24T09:00:00"
-upto_time: Optional[str] = "2020-01-24T10:00:00"
-result_query = HexGridQuery(secretfile=secretfile)
-logger.info("Querying results from an air quality model")
-result_sql = result_query.query_results(
-    instance_id,
-    join_hexgrid=True,
-    output_type="sql",
-    start_time=start_time,
-    upto_time=upto_time,
-)
-logger.debug(result_sql)
-gdf = gpd.GeoDataFrame.from_postgis(result_sql, result_query.dbcnxn.engine, crs=4326)
-gdf = gdf.rename(columns=dict(geom="geometry"))
-gdf.crs = "EPSG:4326"
-# gdf = gpd.GeoDataFrame(result_df, crs=4326, geometry="geom")
-logger.info("%s rows in hexgrid results", len(gdf))
-logger.info("Mapping air quality predictions to the road network.")
-# update_cost(G, gdf, cost_attr="NO2_mean", weight_attr="length")
 G.list_properties()
+pos = G.new_vertex_property("vector<double>")
+x = G.vertex_properties["x"]
+y = G.vertex_properties["y"]
+for v in G.get_vertices():
+    pos[v] = [float(x[v]), float(y[v])]
 
 
-class RouteVisitor(DijkstraVisitor):
+class RouteVisitor(AStarVisitor):
     def __init__(self, target):
         self.target = target
+        self.count = 0
+
+    def examine_vertex(self, v):
+        self.count = self.count + 1
+        print(self.count)
+        if self.count > 3000:
+            print(self.count)
+            print("The graph is too large")
+            raise Exception("Search graph is too big")
 
     def edge_relaxed(self, e):
         if e.target() == self.target:
+            print("stop", self.count)
             raise StopSearch()
-
-
-route = dijkstra_search(
-    G,
-    G.edge_properties["length"],
-    source=G.vertex(1),
-    visitor=RouteVisitor(G.vertex(2)),
-)
-
-print(route)
 
 
 def return_route(
@@ -90,15 +74,35 @@ def return_route(
     # "%s nodes and %s edges in graph.", G.number_of_nodes(), G.number_of_edges()
     # )
     start = time.time()
+    source = G.vertex(1)
+    target = G.vertex(301859)
+    # target = G.vertex(3)
+    box = ellipse_bounding_box(pos[source], pos[target])
 
-    # route = nx.dijkstra_path(
-    #   G,
-    #   ox.distance.get_nearest_node(G, source),
-    #   ox.distance.get_nearest_node(G, target),
-    #   weight="NO2_mean",
-    # )
-    print("A* computed in", time.time() - start, "seconds.")
-    return [G.nodes[r] for r in route]
+    def contains(x, y):
+        return y < box[0] and y > box[1] and x > box[3] and x < box[2]
+
+    # if a vertex is not in the box, make its heuristic value infinite
+    def distance_heuristic(v, target, pos):
+        math.sqrt(sum((pos[v].a - pos[target].a) ** 2)) if contains(
+            float(x[v]), float(y[v])
+        ) else math.inf
+
+    dist, pred = astar_search(
+        G,
+        weight=G.edge_properties["length"],
+        source=source,
+        visitor=RouteVisitor(target),
+        heuristic=lambda v: distance_heuristic(v, target, pos),
+    )
+    route = []
+    v = target
+    while v != source:
+        route.append(v)
+        v = G.vertex(pred[v])
+    # print([{"x": x[r], "y": y[r]} for r in route])
+    print("Route calculated in", time.time() - start, "seconds")
+    return [{"x": x[r], "y": y[r]} for r in route]
 
 
 def main(  # pylint: disable=too-many-arguments

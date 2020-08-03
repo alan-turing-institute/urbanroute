@@ -2,6 +2,7 @@
 from typing import Optional
 import osmnx as ox
 import geopandas as gpd
+import os
 from urbanroute.geospatial import update_cost, ellipse_bounding_box
 from urbanroute.queries import HexGridQuery
 from graph_tool.all import *
@@ -34,4 +35,5 @@ G = update_cost(
 # save target graph as a .gt file
 ox.io.save_graphml(G, "./Trafalgar.graphml")
 G = graph_tool.load_graph("./Trafalgar.graphml")
+os.remove("./Trafalgar.graphml")
 G.save("./Trafalgar.gt")
