@@ -19,7 +19,7 @@ logger = get_logger("Shortest path entrypoint")
 logger.setLevel(logging.DEBUG)
 print("Loading full graph of London...")
 start = time.time()
-G = load_graph("../graphs/London.graphml")
+G = load_graph("../graphs/London.gt")
 print("Graph loaded in", time.time() - start, "seconds")
 logger.info("%s nodes and %s edges in the graph.", G.num_vertices, G.num_edges)
 print("Loading air pollution results")
@@ -42,7 +42,28 @@ gdf = gdf.rename(columns=dict(geom="geometry"))
 gdf.crs = "EPSG:4326"
 # gdf = gpd.GeoDataFrame(result_df, crs=4326, geometry="geom")
 logger.info("%s rows in hexgrid results", len(gdf))
-astar_search(G,)
+logger.info("Mapping air quality predictions to the road network.")
+# update_cost(G, gdf, cost_attr="NO2_mean", weight_attr="length")
+G.list_properties()
+
+
+class RouteVisitor(DijkstraVisitor):
+    def __init__(self, target):
+        self.target = target
+
+    def edge_relaxed(self, e):
+        if e.target() == self.target:
+            raise StopSearch()
+
+
+route = dijkstra_search(
+    G,
+    G.edge_properties["length"],
+    source=G.vertex(1),
+    visitor=RouteVisitor(G.vertex(2)),
+)
+
+print(route)
 
 
 def return_route(
@@ -68,20 +89,15 @@ def return_route(
     # logger.info(
     # "%s nodes and %s edges in graph.", G.number_of_nodes(), G.number_of_edges()
     # )
-
-    logger.info("Mapping air quality predictions to the road network.")
-    G = update_cost(G, gdf, cost_attr="NO2_mean", weight_attr="length")
-    logger.debug("Printing basic stats for the graph:")
-    logger.debug(ox.stats.basic_stats(G))
     start = time.time()
 
-    route = nx.dijkstra_path(
-        G,
-        ox.distance.get_nearest_node(G, source),
-        ox.distance.get_nearest_node(G, target),
-        weight="NO2_mean",
-    )
-    print(time.time() - start)
+    # route = nx.dijkstra_path(
+    #   G,
+    #   ox.distance.get_nearest_node(G, source),
+    #   ox.distance.get_nearest_node(G, target),
+    #   weight="NO2_mean",
+    # )
+    print("A* computed in", time.time() - start, "seconds.")
     return [G.nodes[r] for r in route]
 
 
