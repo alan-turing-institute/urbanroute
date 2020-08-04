@@ -3,6 +3,7 @@ from typing import Optional
 import osmnx as ox
 import geopandas as gpd
 import os
+import matplotlib.pyplot as plt
 from urbanroute.geospatial import update_cost, ellipse_bounding_box
 from urbanroute.queries import HexGridQuery
 from graph_tool.all import *
@@ -21,9 +22,13 @@ result_sql = result_query.query_results(
     upto_time=upto_time,
 )
 gdf = gpd.GeoDataFrame.from_postgis(result_sql, result_query.dbcnxn.engine, crs=4326)
+gdf.plot(column="NO2_mean")
+plt.axis("off")
+plt.savefig("pollution.png", transparent=True, dpi=1000, cmap="inferno")
+plt.show()
 gdf = gdf.rename(columns=dict(geom="geometry"))
+print(gdf.columns)
 gdf.crs = "EPSG:4326"
-
 # load target graph in osmnx
 G = update_cost(
     ox.graph.graph_from_address("Trafalgar Square, Charing Cross, London WC2N 5DN"),
