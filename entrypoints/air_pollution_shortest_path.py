@@ -23,12 +23,19 @@ start = time.time()
 G = load_graph("../graphs/London.gt")
 print("Graph loaded in", time.time() - start, "seconds")
 logger.info("%s nodes and %s edges in the graph.", G.num_vertices, G.num_edges)
-G.list_properties()
+print(G.is_directed())
 pos = G.new_vertex_property("vector<double>")
+floatLength = G.new_edge_property("double")
+G.edge_properties["floatLength"] = floatLength
+length = G.edge_properties["length"]
 x = G.vertex_properties["x"]
 y = G.vertex_properties["y"]
 for v in G.get_vertices():
     pos[v] = [float(x[v]), float(y[v])]
+for e in G.edges():
+    floatLength[e] = float(length[e])
+
+G.list_properties()
 
 
 class RouteVisitor(AStarVisitor):
@@ -38,8 +45,8 @@ class RouteVisitor(AStarVisitor):
 
     def examine_vertex(self, v):
         self.count = self.count + 1
-        print(self.count)
-        if self.count > 3000:
+        # print(self.count)
+        if self.count > 20000:
             print(self.count)
             print("The graph is too large")
             raise Exception("Search graph is too big")
@@ -53,9 +60,9 @@ class RouteVisitor(AStarVisitor):
 def return_route(
     secretfile: str,
     instance_id,
-    source: Tuple[float, float],
+    sourceCoord: Tuple[float, float],
     start_time: str,
-    target: Tuple[float, float],
+    targetCoord: Tuple[float, float],
     upto_time: str,
     verbose: bool = True,
 ):
@@ -74,8 +81,57 @@ def return_route(
     # "%s nodes and %s edges in graph.", G.number_of_nodes(), G.number_of_edges()
     # )
     start = time.time()
-    source = G.vertex(1)
-    target = G.vertex(301859)
+    top = math.inf
+    bottom = -math.inf
+    left = -math.inf
+    right = math.inf
+
+    def distance(source, v):
+        if (
+            pos[v][0] > left
+            and pos[v][0] < right
+            and pos[v][1] < top
+            and pos[v][1] > bottom
+        ):
+            print("distance")
+            return math.sqrt(sum(([source[1], source[0]] - pos[v].a) ** 2))
+        else:
+            return math.inf
+
+    minimum = 0.0002
+    top = sourceCoord[0] + minimum
+    bottom = sourceCoord[0] - minimum
+    left = sourceCoord[1] - minimum
+    right = sourceCoord[1] + minimum
+    minV = None
+    for v in G.vertices():
+        if distance(sourceCoord, v) < minimum:
+            minimum = distance(sourceCoord, v)
+            minV = v
+            top = sourceCoord[0] + minimum
+            bottom = sourceCoord[0] - minimum
+            left = sourceCoord[1] - minimum
+            right = sourceCoord[1] + minimum
+            break
+    source = minV
+
+    minimum = 0.0002
+    top = targetCoord[0] + minimum
+    bottom = targetCoord[0] - minimum
+    left = targetCoord[1] - minimum
+    right = targetCoord[1] + minimum
+    minV = None
+    for v in G.vertices():
+        if distance(targetCoord, v) < minimum:
+            minimum = distance(targetCoord, v)
+            minV = v
+            top = targetCoord[0] + minimum
+            bottom = targetCoord[0] - minimum
+            left = targetCoord[1] - minimum
+            right = targetCoord[1] + minimum
+            break
+    target = minV
+    print("Route calculated in", time.time() - start, "seconds")
     # target = G.vertex(3)
     box = ellipse_bounding_box(pos[source], pos[target])
 
@@ -84,23 +140,30 @@ def return_route(
 
     # if a vertex is not in the box, make its heuristic value infinite
     def distance_heuristic(v, target, pos):
-        math.sqrt(sum((pos[v].a - pos[target].a) ** 2)) if contains(
-            float(x[v]), float(y[v])
-        ) else math.inf
+        return (
+            math.sqrt(sum((pos[v].a - pos[target].a) ** 2))
+            if contains(float(x[v]), float(y[v]))
+            else math.inf
+        )
 
+    print(sourceCoord)
+    print(targetCoord)
+    print(pos[source].a)
+    print(pos[target].a)
     dist, pred = astar_search(
         G,
-        weight=G.edge_properties["length"],
+        weight=G.edge_properties["floatLength"],
         source=source,
         visitor=RouteVisitor(target),
         heuristic=lambda v: distance_heuristic(v, target, pos),
     )
+    print(dist[target])
     route = []
     v = target
     while v != source:
         route.append(v)
         v = G.vertex(pred[v])
-    # print([{"x": x[r], "y": y[r]} for r in route])
+    route.append(v)
     print("Route calculated in", time.time() - start, "seconds")
     return [{"x": x[r], "y": y[r]} for r in route]
 
