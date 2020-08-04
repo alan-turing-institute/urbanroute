@@ -8,6 +8,7 @@ import math
 import geopandas as gpd
 import osmnx as ox
 import networkx as nx
+import numpy as np
 from graph_tool.all import *
 from fastapi import FastAPI
 from cleanair.loggers import get_logger
@@ -26,16 +27,18 @@ logger.info("%s nodes and %s edges in the graph.", G.num_vertices, G.num_edges)
 print(G.is_directed())
 pos = G.new_vertex_property("vector<double>")
 floatLength = G.new_edge_property("double")
+floatX = G.new_vertex_property("double")
+floatY = G.new_vertex_property("double")
 G.edge_properties["floatLength"] = floatLength
 length = G.edge_properties["length"]
 x = G.vertex_properties["x"]
 y = G.vertex_properties["y"]
 for v in G.get_vertices():
     pos[v] = [float(x[v]), float(y[v])]
+    floatX[v] = float(x[v])
+    floatY[v] = float(y[v])
 for e in G.edges():
     floatLength[e] = float(length[e])
-
-G.list_properties()
 
 
 class RouteVisitor(AStarVisitor):
@@ -45,7 +48,6 @@ class RouteVisitor(AStarVisitor):
 
     def examine_vertex(self, v):
         self.count = self.count + 1
-        # print(self.count)
         if self.count > 20000:
             print(self.count)
             print("The graph is too large")
@@ -55,6 +57,10 @@ class RouteVisitor(AStarVisitor):
         if e.target() == self.target:
             print("stop", self.count)
             raise StopSearch()
+
+
+V = G.get_vertices(vprops=[floatX, floatY])
+V = np.delete(V, 0, 1)
 
 
 def return_route(
@@ -86,70 +92,35 @@ def return_route(
     left = -math.inf
     right = math.inf
 
-    def distance(source, v):
-        if (
-            pos[v][0] > left
-            and pos[v][0] < right
-            and pos[v][1] < top
-            and pos[v][1] > bottom
-        ):
-            print("distance")
-            return math.sqrt(sum(([source[1], source[0]] - pos[v].a) ** 2))
-        else:
-            return math.inf
+    minimum = 0.0009
+    ll = np.array([sourceCoord[1] - minimum, sourceCoord[0] - minimum])
+    ur = np.array([sourceCoord[1] + minimum, sourceCoord[0] + minimum])
+    inidx = np.all(np.logical_and(ll <= V, V <= ur), axis=1)
+    inbox = np.where(inidx == 1)
+    source = inbox[0][0]
 
-    minimum = 0.0002
-    top = sourceCoord[0] + minimum
-    bottom = sourceCoord[0] - minimum
-    left = sourceCoord[1] - minimum
-    right = sourceCoord[1] + minimum
-    minV = None
-    for v in G.vertices():
-        if distance(sourceCoord, v) < minimum:
-            minimum = distance(sourceCoord, v)
-            minV = v
-            top = sourceCoord[0] + minimum
-            bottom = sourceCoord[0] - minimum
-            left = sourceCoord[1] - minimum
-            right = sourceCoord[1] + minimum
-            break
-    source = minV
+    ll = np.array([targetCoord[1] - minimum, targetCoord[0] - minimum])
+    ur = np.array([targetCoord[1] + minimum, targetCoord[0] + minimum])
+    inidx = np.all(np.logical_and(ll <= V, V <= ur), axis=1)
+    inbox = np.where(inidx == 1)
+    target = inbox[0][0]
 
-    minimum = 0.0002
-    top = targetCoord[0] + minimum
-    bottom = targetCoord[0] - minimum
-    left = targetCoord[1] - minimum
-    right = targetCoord[1] + minimum
-    minV = None
-    for v in G.vertices():
-        if distance(targetCoord, v) < minimum:
-            minimum = distance(targetCoord, v)
-            minV = v
-            top = targetCoord[0] + minimum
-            bottom = targetCoord[0] - minimum
-            left = targetCoord[1] - minimum
-            right = targetCoord[1] + minimum
-            break
-    target = minV
-    print("Route calculated in", time.time() - start, "seconds")
-    # target = G.vertex(3)
     box = ellipse_bounding_box(pos[source], pos[target])
 
     def contains(x, y):
         return y < box[0] and y > box[1] and x > box[3] and x < box[2]
 
+    ll = np.array([box[3], box[1]])
+    ur = np.array([box[2], box[0]])
     # if a vertex is not in the box, make its heuristic value infinite
     def distance_heuristic(v, target, pos):
         return (
-            math.sqrt(sum((pos[v].a - pos[target].a) ** 2))
-            if contains(float(x[v]), float(y[v]))
+            math.sqrt(np.sum(np.square(pos[v].a - pos[target].a)))
+            if np.all(np.less(ll, pos[v].a)) and np.all(np.less(pos[v].a, ur))
             else math.inf
         )
 
-    print(sourceCoord)
-    print(targetCoord)
-    print(pos[source].a)
-    print(pos[target].a)
+    start = time.time()
     dist, pred = astar_search(
         G,
         weight=G.edge_properties["floatLength"],
@@ -157,7 +128,7 @@ def return_route(
         visitor=RouteVisitor(target),
         heuristic=lambda v: distance_heuristic(v, target, pos),
     )
-    print(dist[target])
+
     route = []
     v = target
     while v != source:
