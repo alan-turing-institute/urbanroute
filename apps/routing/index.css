@@ -27,3 +27,8 @@ html,body{
     grid-row: 1;
     visibility: hidden;
 }
+
+.mapbox-directions-profile{
+    visibility: hidden;
+    display: none;
+}

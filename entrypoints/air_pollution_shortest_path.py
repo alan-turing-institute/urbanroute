@@ -159,14 +159,14 @@ def main(  # pylint: disable=too-many-arguments
         "d5e691ef9a1f2e86743f614806319d93e30709fe179dfb27e7b99b9b967c8737",
         help="Id of the air quality trained model.",
     ),
-    source_lat: float = 51.4929,
-    source_long: float = -0.1215,
+    source_lat: float = 51.510357,
+    source_long: float = -0.116773,
     start_time: Optional[str] = typer.Option(
         "2020-01-24T09:00:00",
         help="Beginning of air quality predictions (inclusive). ISO formatted string.",
     ),
-    target_lat: float = 51.5929,
-    target_long: float = -0.1215,
+    target_lat: float = 51.529972,
+    target_long: float = -0.127676,
     upto_time: Optional[str] = typer.Option(
         "2020-01-24T10:00:00",
         help="End of air quality predictions (exclusive). ISO formatted string.",
