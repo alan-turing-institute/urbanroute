@@ -5,9 +5,6 @@ import logging
 import time
 import typer
 import math
-import geopandas as gpd
-import osmnx as ox
-import networkx as nx
 import numpy as np
 from graph_tool.all import *
 from fastapi import FastAPI
@@ -19,12 +16,13 @@ from urbanroute.queries import HexGridQuery
 APP = FastAPI()
 logger = get_logger("Shortest path entrypoint")
 logger.setLevel(logging.DEBUG)
-print("Loading graph of London...")
+logger.info("Loading graph of London...")
 start = time.time()
 G = load_graph("../graphs/London.gt")
-print("Graph loaded in", time.time() - start, "seconds")
+logger.info("Graph loaded in %s seconds.", time.time() - start)
 logger.info("%s nodes and %s edges in the graph.", G.num_vertices, G.num_edges)
-print(G.is_directed())
+
+# add position property, and add float versions of string edge attributes
 pos = G.new_vertex_property("vector<double>")
 floatLength = G.new_edge_property("double")
 floatX = G.new_vertex_property("double")
@@ -48,17 +46,19 @@ class RouteVisitor(AStarVisitor):
 
     def examine_vertex(self, v):
         self.count = self.count + 1
+        # we have examined too many vertices, running out of memory
         if self.count > 20000:
-            print(self.count)
-            print("The graph is too large")
+            # logger.log("The graph is too large")
             raise Exception("Search graph is too big")
 
     def edge_relaxed(self, e):
+        # stop if the target vertex has been reached
         if e.target() == self.target:
-            print("stop", self.count)
+            # logger.log("Stopped after examining %s vertices", self.count)
             raise StopSearch()
 
 
+# set up numpy array of vertices with just the
 V = G.get_vertices(vprops=[floatX, floatY])
 V = np.delete(V, 0, 1)
 
@@ -80,39 +80,52 @@ def return_route(
     target: (target latitude, target longitude) for target point.
     verbose: enable debug logging.
     """
-    # use bounding box of surrounding ellipse to limit graph size
-    # box = ellipse_bounding_box((source[1], source[0]), (target[1], target[0]))
-    # G: nx.MultiDiGraph = ox.graph_from_bbox(box[0], box[1], box[2], box[3])
-    # logger.info(
-    # "%s nodes and %s edges in graph.", G.number_of_nodes(), G.number_of_edges()
-    # )
-    start = time.time()
-    top = math.inf
-    bottom = -math.inf
-    left = -math.inf
-    right = math.inf
 
+    start = time.time()
+    # find vertices in the graph that are close enough to the start/target coordinates
+    # any vertex within the minimum rectangle is sufficient
     minimum = 0.0009
     ll = np.array([sourceCoord[1] - minimum, sourceCoord[0] - minimum])
     ur = np.array([sourceCoord[1] + minimum, sourceCoord[0] + minimum])
     inidx = np.all(np.logical_and(ll <= V, V <= ur), axis=1)
     inbox = np.where(inidx == 1)
-    source = inbox[0][0]
-
+    source = None
+    for v in inbox[0]:
+        if (
+            math.sqrt(
+                np.sum(np.square(pos[v].a - np.array([sourceCoord[1], sourceCoord[0]])))
+            )
+            < minimum
+        ):
+            minimum = math.sqrt(
+                np.sum(np.square(pos[v].a - np.array([sourceCoord[1], sourceCoord[0]])))
+            )
+            source = v
+    minimum = 0.0009
     ll = np.array([targetCoord[1] - minimum, targetCoord[0] - minimum])
     ur = np.array([targetCoord[1] + minimum, targetCoord[0] + minimum])
     inidx = np.all(np.logical_and(ll <= V, V <= ur), axis=1)
     inbox = np.where(inidx == 1)
-    target = inbox[0][0]
+    target = None
+    for v in inbox[0]:
+        if (
+            math.sqrt(
+                np.sum(np.square(pos[v].a - np.array([targetCoord[1], targetCoord[0]])))
+            )
+            < minimum
+        ):
+            minimum = math.sqrt(
+                np.sum(np.square(pos[v].a - np.array([targetCoord[1], targetCoord[0]])))
+            )
+            target = v
 
+    # create box around the source and target vertices to eliminate points that are too far away
     box = ellipse_bounding_box(pos[source], pos[target])
-
-    def contains(x, y):
-        return y < box[0] and y > box[1] and x > box[3] and x < box[2]
 
     ll = np.array([box[3], box[1]])
     ur = np.array([box[2], box[0]])
-    # if a vertex is not in the box, make its heuristic value infinite
+    # Euclidean heuristic. If a vertex is not in the box, make its heuristic value infinite
+    # so that it is never extended
     def distance_heuristic(v, target, pos):
         return (
             math.sqrt(np.sum(np.square(pos[v].a - pos[target].a)))
@@ -129,6 +142,7 @@ def return_route(
         heuristic=lambda v: distance_heuristic(v, target, pos),
     )
 
+    # backtrack through the graph
     route = []
     v = target
     while v != source:
