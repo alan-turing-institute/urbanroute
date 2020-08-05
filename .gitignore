@@ -5,5 +5,9 @@ __pycache__
 *.egg-info
 
 # misc
+<<<<<<< HEAD
 .vscode
 graphs/*.gt
+=======
+.vscode
+>>>>>>> bdb90b176c5b3f988f370c012b3916bdb253e208
