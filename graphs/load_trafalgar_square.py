@@ -22,13 +22,14 @@ result_sql = result_query.query_results(
     upto_time=upto_time,
 )
 gdf = gpd.GeoDataFrame.from_postgis(result_sql, result_query.dbcnxn.engine, crs=4326)
+# May need to switch to mercator projection to match Mapbox's projection - a different EPSG code than 4326
+gdf.crs = "EPSG:4326"
 gdf.plot(column="NO2_mean")
 plt.axis("off")
 plt.savefig("pollution.png", transparent=True, dpi=1000, cmap="inferno")
 plt.show()
 gdf = gdf.rename(columns=dict(geom="geometry"))
 print(gdf.columns)
-gdf.crs = "EPSG:4326"
 # load target graph in osmnx
 G = update_cost(
     ox.graph.graph_from_address("Trafalgar Square, Charing Cross, London WC2N 5DN"),
