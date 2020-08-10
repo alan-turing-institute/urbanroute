@@ -6,6 +6,7 @@
     <title>Routing</title>
     <link href='https://api.mapbox.com/mapbox-gl-js/v1.11.0/mapbox-gl.css' rel='stylesheet' />
     <link href='index.css' rel='stylesheet'>
+    <link rel="stylesheet" type="text/css" href="semantic/dist/semantic.min.css">
     <link rel="stylesheet"
         href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-directions/v4.0.2/mapbox-gl-directions.css"
         type="text/css" />
@@ -15,10 +16,54 @@
     <div id="map"></div>
     <!-- this div is used to render static background -->
     <div id="static"></div>
+    <div class="ui vertical menu" style="position:absolute; left:11px; top:90px">
+        <div class="item">
+            <div class="header">Routing Algorithms</div>
+            <div class="ui divider"></div>
+            <div class="ui form">
+                <div class="grouped fields">
+                    <label>Algorithm</label>
+                    <div class="field">
+                        <div class="ui radio checkbox">
+                            <input type="radio" name="example2" checked="checked">
+                            <label>A* search</label>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <div class="ui radio checkbox">
+                            <input type="radio" name="example2">
+                            <label>MOSPP</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="ui divider"></div>
+                <div class="ui vertical segment" style="padding:0px 0px">
+                    <div class="grouped fields">
+                        <div class="ui inverted active dimmer"></div>
+                        <label>Variable</label>
+                        <div class="field">
+                            <div class="ui radio checkbox">
+                                <input type="radio" name="example2" checked="checked">
+                                <label>Distance</label>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <div class="ui radio checkbox">
+                                <input type="radio" name="example2">
+                                <label>Pollution</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    </div>
     <img src="odysseus_logo.png" style="position:absolute; width:400px; bottom:0px; right:20px"></img>
     <script src='https://api.mapbox.com/mapbox-gl-js/v1.11.0/mapbox-gl.js'></script>
     <script src="mapbox-gl-directions/dist/mapbox-gl-directions.js"></script>
     <script src="index.js"></script>
+    <script src="semantic/dist/semantic.min.js"></script>
 </body>
 
 
