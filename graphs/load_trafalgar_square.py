@@ -24,10 +24,21 @@ result_sql = result_query.query_results(
 gdf = gpd.GeoDataFrame.from_postgis(result_sql, result_query.dbcnxn.engine, crs=4326)
 # May need to switch to mercator projection to match Mapbox's projection - a different EPSG code than 4326
 gdf.crs = "EPSG:4326"
+gdf.to_crs(epsg="3857")
 gdf.plot(column="NO2_mean")
 plt.axis("off")
-plt.savefig("pollution.png", transparent=True, dpi=1000, cmap="inferno")
+plt.savefig(
+    "pollution.png",
+    transparent=True,
+    dpi=1000,
+    cmap="inferno",
+    bbox_inches="tight",
+    pad_inches=0,
+)
+print(plt.ylim())
+print(plt.xlim())
 plt.show()
+gdf.to_crs(epsg="4326")
 gdf = gdf.rename(columns=dict(geom="geometry"))
 print(gdf.columns)
 # load target graph in osmnx
