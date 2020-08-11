@@ -16,7 +16,7 @@
     <div id="map"></div>
     <!-- this div is used to render static background -->
     <div id="static"></div>
-    <div class="ui vertical menu" style="position:absolute; left:11px; top:90px">
+    <div class="ui vertical menu" style="position:absolute; left:10px; top:90px">
         <div class="item">
             <div class="header">Routing Algorithms</div>
             <div class="ui divider"></div>
@@ -25,35 +25,46 @@
                     <label>Algorithm</label>
                     <div class="field">
                         <div class="ui radio checkbox">
-                            <input type="radio" name="example2" checked="checked">
+                            <input type="radio" name="algorithm" checked="checked">
                             <label>A* search</label>
                         </div>
                     </div>
                     <div class="field">
                         <div class="ui radio checkbox">
-                            <input type="radio" name="example2">
-                            <label>MOSPP</label>
+                            <input type="radio" name="algorithm">
+                            <label>Multi-objective</label>
                         </div>
                     </div>
                 </div>
                 <div class="ui divider"></div>
-                <div class="ui vertical segment" style="padding:0px 0px">
-                    <div class="grouped fields">
-                        <div class="ui inverted active dimmer"></div>
-                        <label>Variable</label>
-                        <div class="field">
-                            <div class="ui radio checkbox">
-                                <input type="radio" name="example2" checked="checked">
-                                <label>Distance</label>
-                            </div>
-                        </div>
-                        <div class="field">
-                            <div class="ui radio checkbox">
-                                <input type="radio" name="example2">
-                                <label>Pollution</label>
-                            </div>
+                <div class="grouped fields">
+                    <label>Variable</label>
+                    <div class="field">
+                        <div class="ui radio checkbox">
+                            <input type="radio" name="variable">
+                            <label>Distance</label>
                         </div>
                     </div>
+                    <div class="field">
+                        <div class="ui radio checkbox">
+                            <input type="radio" name="variable">
+                            <label>Pollution</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="ui divider"></div>
+                <div class="grouped fields">
+                    <label>Overlay</label>
+                    <div class="field">
+                        <div class="ui toggle checkbox">
+                            <input type="checkbox" name="overlayToggle">
+                            <label>Pollution</label>
+                        </div>
+                    </div>
+                    <!--<div class="field">
+                        <input type="range" min="1" max="100" value="50" class="slider" id="myRange" name="myRange">
+                        <label for="myRange">Time Period</label>
+                    </div>-->
                 </div>
             </div>
         </div>
