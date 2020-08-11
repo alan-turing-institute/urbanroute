@@ -14,6 +14,6 @@ setuptools.setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
-    install_requires=["networkx==2.4"],
+    install_requires=["graph_tool==2.33"],
     python_requires=">=3.6",
 )

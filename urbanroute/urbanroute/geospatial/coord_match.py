@@ -1,18 +1,19 @@
 """
     Given a coordinate, find the closest vertex in the graph quickly
 """
-import numpy as np
 import math
+import numpy as np
 
 
-def coord_match(V, target_coord: np.array, pos):
+def coord_match(vertices, target_coord: np.array, pos):
     """
     Given a coordinate, find the closest vertex in the graph quickly
     Args:
-        V: nx2 matrix, where n is the number of vertices. Each row is the x, y position of the vertex associated with that row
+        vertices: nx2 matrix, where n is the number of vertices. Each row is the x, y
+        position of the vertex associated with that row
         target_coord: the coordinate in lat, long format
         pos: the definition of distance in our graph; typically x is long and y is lat
-    
+
     Returns:
         closest vertex, target
     """
@@ -20,7 +21,9 @@ def coord_match(V, target_coord: np.array, pos):
     # find all points within a box around the coordinate
     lower_left = np.array([target_coord[1] - minimum, target_coord[0] - minimum])
     upper_right = np.array([target_coord[1] + minimum, target_coord[0] + minimum])
-    indices = np.all(np.logical_and(lower_left <= V, V <= upper_right), axis=1)
+    indices = np.all(
+        np.logical_and(lower_left <= vertices, vertices <= upper_right), axis=1
+    )
     inside_box = np.where(indices == 1)
     target = None
     for v in inside_box[0]:

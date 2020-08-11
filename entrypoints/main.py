@@ -1,17 +1,16 @@
 """Find the least cost path from source to target by minimising air pollution."""
 
-from typing import Tuple, Optional
+from typing import Tuple
 import logging
 import time
-import typer
 import math
+import typer
 import numpy as np
-from routex import *
-from graph_tool.all import *
 from fastapi import FastAPI
+from graph_tool.all import load_graph
+from routex import astar
 from cleanair.loggers import get_logger
-from urbanroute.geospatial import update_cost, ellipse_bounding_box, coord_match
-from urbanroute.queries import HexGridQuery
+from urbanroute.geospatial import ellipse_bounding_box, coord_match
 
 
 APP = FastAPI()
@@ -43,8 +42,8 @@ for e in G.edges():
     # pollution[e] = (float(mean[e])
 
 # set up numpy array of vertices with just the
-V = G.get_vertices(vprops=[float_x, float_y])
-V = np.delete(V, 0, 1)
+vertices = G.get_vertices(vprops=[float_x, float_y])
+vertices = np.delete(vertices, 0, 1)
 
 
 def return_route(
@@ -62,10 +61,10 @@ def return_route(
     """
     # find vertices in the graph that are close enough to the start/target coordinates
     # any vertex within the minimum rectangle is sufficient
-    source = coord_match(V, source_coord, pos)
-    target = coord_match(V, target_coord, pos)
-    # create box around the source and target vertices to eliminate points that are (probably) too far away
-    # to be part of a shortest path
+    source = coord_match(vertices, source_coord, pos)
+    target = coord_match(vertices, target_coord, pos)
+    # create box around the source and target vertices to eliminate points
+    # that are (probably) too far away to be part of a shortest path
     box = ellipse_bounding_box(pos[source], pos[target])
 
     lower_left = np.array([box[3], box[1]])
@@ -85,24 +84,10 @@ def return_route(
 
 
 def main(  # pylint: disable=too-many-arguments
-    secretfile: str,
-    instance_id: str = typer.Option(
-        "d5e691ef9a1f2e86743f614806319d93e30709fe179dfb27e7b99b9b967c8737",
-        help="Id of the air quality trained model.",
-    ),
     source_lat: float = 51.510357,
     source_long: float = -0.116773,
-    start_time: Optional[str] = typer.Option(
-        "2020-01-24T09:00:00",
-        help="Beginning of air quality predictions (inclusive). ISO formatted string.",
-    ),
     target_lat: float = 51.529972,
     target_long: float = -0.127676,
-    upto_time: Optional[str] = typer.Option(
-        "2020-01-24T10:00:00",
-        help="End of air quality predictions (exclusive). ISO formatted string.",
-    ),
-    verbose: Optional[bool] = typer.Option(False, help="Output debug logs.",),
 ):
     """
     secretfile: Path to the database secretfile.
