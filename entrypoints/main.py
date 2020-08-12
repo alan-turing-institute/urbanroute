@@ -1,6 +1,6 @@
 """Find the least cost path from source to target by minimising air pollution."""
 
-from typing import Tuple
+from typing import Tuple, List, Dict
 import logging
 import time
 import math
@@ -49,8 +49,8 @@ vertices = np.delete(vertices, 0, 1)
 def return_route(
     source_coord: Tuple[float, float],
     target_coord: Tuple[float, float],
-    attribute: str = "",
-):
+    attribute: str,
+) -> List[Dict[str, str]]:
     """
     Find the least polluted path.
     secretfile: Path to the database secretfile.
@@ -88,17 +88,14 @@ def main(  # pylint: disable=too-many-arguments
     source_long: float = -0.116773,
     target_lat: float = 51.529972,
     target_long: float = -0.127676,
-):
+) -> List[Dict[str, str]]:
     """
-    secretfile: Path to the database secretfile.
-    instance_id: Id of the air quality trained model.
     sourceLat: latitude of the source point.
     sourceLong: longitude of the source point.
     targetLat: latitude of the target point.
     targetLong: longitude of the target point.
-    verbose: enable debug logging.
     """
-    return_route(
+    return return_route(
         (source_lat, source_long), (target_lat, target_long), "float_length",
     )
 
@@ -110,7 +107,7 @@ if __name__ == "__main__":
 @APP.get("/route/")
 async def get_route(
     source_lat: float, source_long: float, target_lat: float, target_long: float
-):
+) -> List[Dict[str, str]]:
     """
     API route to get route from A to B.
     sourceLat: latitude of the source point.

@@ -1,29 +1,33 @@
 """Perform A* on the graph"""
-from graph_tool.all import AStarVisitor, astar_search, StopSearch
+from graph_tool.all import AStarVisitor, astar_search, StopSearch, Graph
+import numpy as np
+from typing import Tuple
 
 
 class RouteVisitor(AStarVisitor):
     """Custom functions for our A* implementation"""
 
-    def __init__(self, target):
+    def __init__(self, target: int):
         self.target = target
         self.count = 0
 
-    def examine_vertex(self, v):
+    def examine_vertex(self, v: int):
         self.count = self.count + 1
         # we have examined too many vertices, running out of memory
         if self.count > 20000:
             # logger.log("The graph is too large")
             raise Exception("Search graph is too big")
 
-    def edge_relaxed(self, e):
+    def edge_relaxed(self, e: Tuple[int, int]):
         # stop if the target vertex has been reached
         if e.target() == self.target:
             # logger.log("Stopped after examining %s vertices", self.count)
             raise StopSearch()
 
 
-def astar(G, source, target, edge_attribute: str, heuristic, pos):
+def astar(
+    G: Graph, source: int, target: int, edge_attribute: str, heuristic, pos: np.ndarray
+) -> np.ndarray:
     """
     Perform A* with given heuristic
     Args:
