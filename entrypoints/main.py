@@ -8,8 +8,8 @@ import typer
 import numpy as np
 from fastapi import FastAPI
 from graph_tool.all import load_graph
-from routex import astar
 from cleanair.loggers import get_logger
+from routex import astar
 from urbanroute.geospatial import ellipse_bounding_box, coord_match
 
 
