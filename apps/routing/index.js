@@ -15,6 +15,25 @@ map.on('load', () => {
     //show dynamic map instead of static background
     document.getElementById("map").style.visibility = "visible";
     //add routing layer and an empty source (as no route currently)
+    map.addSource("myImageSource", {
+        "type": "image",
+        "url": "pollution.png",
+        "coordinates": [
+            [-0.550992140362932, 51.71276304828286],
+            [0.3764553855290124, 51.71276304828286],
+            [0.3764553855290124, 51.26638747107266],
+            [-0.550992140362932, 51.26638747107266]
+        ]
+    });
+
+    map.addLayer({
+        "id": "overlay",
+        "source": "myImageSource",
+        "type": "raster",
+        "paint": {
+            "raster-opacity": 0.3
+        }
+    });
     map.addSource('route', {
         'type': 'geojson',
         'data': {

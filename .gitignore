@@ -6,3 +6,5 @@ __pycache__
 
 # misc
 .vscode
+graphs/*.gt
+apps/routing/node_modules

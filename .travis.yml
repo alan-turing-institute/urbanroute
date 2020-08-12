@@ -22,6 +22,7 @@ jobs:
             - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION
             - conda activate test-environment
             - conda install -c conda-forge osmnx
+            - conda install -c conda-forge graph-tool
             # Install cleanair
             - pip install "git+https://urbanrouting-ci:$CLEANAIRTOKEN@github.com/alan-turing-institute/clean-air-infrastructure.git/#egg=pkg&subdirectory=containers/cleanair"
             # Install requirements and modules
