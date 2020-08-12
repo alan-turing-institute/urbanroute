@@ -1,7 +1,7 @@
 """Perform A* on the graph"""
+from typing import Tuple
 from graph_tool.all import AStarVisitor, astar_search, StopSearch, Graph
 import numpy as np
-from typing import Tuple
 
 
 class RouteVisitor(AStarVisitor):

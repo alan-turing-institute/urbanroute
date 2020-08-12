@@ -47,9 +47,7 @@ vertices = np.delete(vertices, 0, 1)
 
 
 def return_route(
-    source_coord: Tuple[float, float],
-    target_coord: Tuple[float, float],
-    attribute: str,
+    source_coord: Tuple[float, float], target_coord: Tuple[float, float], attribute: str
 ) -> List[Dict[str, str]]:
     """
     Find the least polluted path.
@@ -96,7 +94,7 @@ def main(  # pylint: disable=too-many-arguments
     targetLong: longitude of the target point.
     """
     return return_route(
-        (source_lat, source_long), (target_lat, target_long), "float_length",
+        (source_lat, source_long), (target_lat, target_long), "float_length"
     )
 
 
@@ -116,5 +114,5 @@ async def get_route(
     targetLong: longitude of the target point.
     """
     return return_route(
-        (source_lat, source_long), (target_lat, target_long), "float_length",
+        (source_lat, source_long), (target_lat, target_long), "float_length"
     )
