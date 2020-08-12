@@ -44,29 +44,24 @@ def mospp(
     source: Vertex, target: Vertex, cost_1: EdgePropertyMap, cost_2: EdgePropertyMap
 ):
     labels = [Label(None, np.array([0, 0]), source)]
+    vertex_dict = {}
     while len(labels) != 0:
         current = heapq.heappop(labels)
         for out_edge in current.assoc.out_edges():
-            if out_edge.target() == target:
-                print(
-                    current.assoc,
-                    [
-                        current.resource[0] + cost_1[out_edge],
-                        current.resource[1] + cost_2[out_edge],
-                    ],
-                    out_edge.target(),
-                )
-            heapq.heappush(
-                labels,
-                Label(
-                    current.assoc,
-                    [
-                        current.resource[0] + cost_1[out_edge],
-                        current.resource[1] + cost_2[out_edge],
-                    ],
-                    out_edge.target(),
-                ),
+            new_label = Label(
+                current.assoc,
+                [
+                    current.resource[0] + cost_1[out_edge],
+                    current.resource[1] + cost_2[out_edge],
+                ],
+                out_edge.target(),
             )
+            if out_edge.target() in vertex_dict:
+                vertex_dict[out_edge.target()].append(new_label)
+            else:
+                vertex_dict[out_edge.target()] = [new_label]
+            heapq.heappush(labels, new_label)
+    print(vertex_dict)
 
 
 mospp(v1, v4, cost_1, cost_2)
