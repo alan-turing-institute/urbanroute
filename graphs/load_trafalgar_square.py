@@ -52,7 +52,8 @@ def main(secretfile: str):
     logger.info(gdf.columns)
     # load target graph in osmnx
     G = update_cost(
-        ox.graph.graph_from_address("Trafalgar Square, Charing Cross, London WC2N 5DN"),
+        ox.graph.graph_from_bbox(51.505243, 51.502915, -0.152267, -0.145845),
+        # ox.graph.graph_from_address("Trafalgar Square, Charing Cross, London WC2N 5DN"),
         gdf,
         cost_attr="NO2_mean",
         weight_attr="length",
