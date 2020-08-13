@@ -120,7 +120,9 @@ def mospp(
             else:
                 vertex_dict[out_edge.target()] = [new_label]
                 heapq.heappush(labels, new_label)
-    print(vertex_dict)
+    for key in vertex_dict:
+        print(key, len(vertex_dict[key]))
+    color = "green"
     for label in vertex_dict[target]:
         print(label.resource)
         v = target
@@ -129,12 +131,15 @@ def mospp(
             label_tracker = label_tracker.pred
             v = label_tracker.assoc
             if v != source and v != target:
-                vcolor[v] = "green"
+                vcolor[v] = color
+        color = "purple"
 
 
-vcolor[69] = "blue"
-vcolor[62] = "blue"
+source = 69
+target = 570
+vcolor[source] = "blue"
+vcolor[target] = "blue"
 # mospp(v1, v4, cost_1, cost_2)
-mospp(G.vertex(62), G.vertex(69), float_length, pollution)
+mospp(G.vertex(source), G.vertex(target), float_length, pollution)
 graph_draw(G, pos, vertex_text=number, vertex_fill_color=vcolor)
 
