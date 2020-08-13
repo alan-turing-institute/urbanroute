@@ -15,11 +15,10 @@ class Label:
     def __gt__(self, other):
         return self.resource > other.resource
 
-    def __str__(self):
-        return str(self.resource)
-
     def dominate(self, other):
-        np.all(np.greater(self.resource, other.resource))
+        return np.all(np.less_equal(self.resource, other.resource)) and np.any(
+            np.less(self.resource, other.resource)
+        )
 
 
 g = Graph()
@@ -38,14 +37,14 @@ cost_1[e1] = 1
 cost_1[e2] = 0
 cost_1[e3] = 1
 cost_1[e4] = 0
-cost_1[e5] = 0
+cost_1[e5] = 1
 
 cost_2 = g.new_edge_property("int")
 cost_2[e1] = 0
 cost_2[e2] = 1
 cost_2[e3] = 0
 cost_2[e4] = 1
-cost_2[e5] = 0
+cost_2[e5] = 1
 
 
 def mospp(
@@ -68,18 +67,28 @@ def mospp(
                 discard = False
                 for vertex_label in vertex_dict[out_edge.target()]:
                     if vertex_label.dominate(new_label):
+                        print("dominates")
+                        print(vertex_label.resource)
+                        print(new_label.resource)
+                        print("end")
+                        pass
                         discard = True
                 for vertex_label in vertex_dict[out_edge.target()]:
                     if new_label.dominate(vertex_label):
+                        print("dominates")
+                        print(new_label.resource)
+                        print(vertex_label.resource)
+                        print("end")
                         vertex_dict[out_edge.target()].remove(vertex_label)
 
-                if discard:
+                if not discard:
                     vertex_dict[out_edge.target()].append(new_label)
 
             else:
                 vertex_dict[out_edge.target()] = [new_label]
                 heapq.heappush(labels, new_label)
-    print(vertex_dict)
+    for label in vertex_dict[target]:
+        print(label.resource)
 
 
 mospp(v1, v4, cost_1, cost_2)
