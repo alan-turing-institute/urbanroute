@@ -7,7 +7,7 @@ import math
 import typer
 import numpy as np
 from fastapi import FastAPI
-from graph_tool.all import load_graph
+from graph_tool.all import load_graph, Edge
 from cleanair.loggers import get_logger
 from routex import astar
 from urbanroute.geospatial import ellipse_bounding_box, coord_match
@@ -42,19 +42,7 @@ for e in G.edges():
     # pollution[e] = (float(mean[e])
 
 inside = G.new_vertex_property("bool")
-leaves = G.new_vertex_property("bool")
 path = 0
-for v in G.vertices():
-    leaves[v] = True
-    if v.out_degree() == 0 or v.in_degree() == 0:
-        leaves[v] = False
-    if v.out_degree() == 1 and v.in_degree() == 1:
-        path = path + 1
-print(np.count_nonzero(leaves.a))
-print(path)
-# set up numpy array of vertices with just the
-vertices = G.get_vertices(vprops=[float_x, float_y])
-vertices = np.delete(vertices, 0, 1)
 
 
 def haversine(lon1, lat1, lon2, lat2):
@@ -74,6 +62,56 @@ def haversine(lon1, lat1, lon2, lat2):
     c = 2 * math.asin(math.sqrt(a))
     r = 6378.137  # Radius of earth in kilometers. Use 3956 for miles
     return c * r
+
+
+del_list = G.new_vertex_property("bool")
+new_edges = []
+for v in G.vertices():
+    del_list[v] = True
+    if v.out_degree() == 0 or v.in_degree() == 0:
+        del_list[v] = False
+    if v.out_degree() == 1 and v.in_degree() == 1:
+        cut = True
+        new_edge_length = 0
+        for into in v.in_edges():
+            if (
+                haversine(
+                    pos[v].a[0],
+                    pos[v].a[1],
+                    pos[into.source()].a[0],
+                    pos[into.source()].a[1],
+                )
+                > 50
+            ):
+                cut = False
+            new_edge_length = length[into]
+
+        for outof in v.out_edges():
+            if (
+                haversine(
+                    pos[v].a[0],
+                    pos[v].a[1],
+                    pos[outof.target()].a[0],
+                    pos[outof.target()].a[1],
+                )
+                > 50
+            ):
+                cut = False
+            new_edge_length = new_edge_length + length[outof]
+
+        if cut:
+            e = (into.source(), outof.target(), new_edge_length)
+            new_edges.append(e)
+            del_list[v] = False
+
+for e in new_edges:
+    new = G.add_edge(e[0], e[1])
+    length[new] = e[2]
+
+print(np.count_nonzero(del_list.a))
+# set up numpy array of vertices with just the
+vertices = G.get_vertices(vprops=[float_x, float_y])
+vertices = np.delete(vertices, 0, 1)
 
 
 def return_route(
@@ -103,7 +141,9 @@ def return_route(
         np.logical_and(lower_left <= vertices, vertices <= upper_right), axis=1
     )
     # print(np.count_nonzero(indices))
-    inside.a = np.logical_and(indices, leaves.a)
+    inside.a = np.logical_and(indices, del_list.a)
+    inside[source] = True
+    inside[target] = True
     print(np.count_nonzero(inside.a))
     G.set_vertex_filter(inside)
 
@@ -113,7 +153,7 @@ def return_route(
             * 1000
         )
 
-    print(distance_heuristic(source, target, pos))
+    print(target)
     route = astar(G, source, target, attribute, distance_heuristic, pos)
     return [{"x": x[r], "y": y[r]} for r in route]
 
