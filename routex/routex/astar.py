@@ -21,6 +21,7 @@ class RouteVisitor(AStarVisitor):
     def edge_relaxed(self, e: Tuple[int, int]):
         # stop if the target vertex has been reached
         if e.target() == self.target:
+            print("stopped", self.count)
             # logger.log("Stopped after examining %s vertices", self.count)
             raise StopSearch()
 
@@ -40,13 +41,14 @@ def astar(
     Returns: a list of vertices from the source to the target
     """
     # run A*
-    pred = astar_search(
+    dist, pred = astar_search(
         G,
         weight=G.edge_properties[edge_attribute],
         source=source,
         visitor=RouteVisitor(target),
         heuristic=lambda v: heuristic(v, target, pos),
-    )[1]
+    )
+    print(dist[target])
 
     # backtrack through the graph to the source
     route = []

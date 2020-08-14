@@ -41,9 +41,39 @@ for e in G.edges():
     float_length[e] = float(length[e])
     # pollution[e] = (float(mean[e])
 
+inside = G.new_vertex_property("bool")
+leaves = G.new_vertex_property("bool")
+path = 0
+for v in G.vertices():
+    leaves[v] = True
+    if v.out_degree() == 0 or v.in_degree() == 0:
+        leaves[v] = False
+    if v.out_degree() == 1 and v.in_degree() == 1:
+        path = path + 1
+print(np.count_nonzero(leaves.a))
+print(path)
 # set up numpy array of vertices with just the
 vertices = G.get_vertices(vprops=[float_x, float_y])
 vertices = np.delete(vertices, 0, 1)
+
+
+def haversine(lon1, lat1, lon2, lat2):
+    """
+    Great circle distance between two points
+    """
+    # convert decimal degrees to radians
+    lon1, lat1, lon2, lat2 = map(math.radians, [lon1, lat1, lon2, lat2])
+
+    # haversine formula
+    dlon = lon2 - lon1
+    dlat = lat2 - lat1
+    a = (
+        math.sin(dlat / 2) ** 2
+        + math.cos(lat1) * math.cos(lat2) * math.sin(dlon / 2) ** 2
+    )
+    c = 2 * math.asin(math.sqrt(a))
+    r = 6378.137  # Radius of earth in kilometers. Use 3956 for miles
+    return c * r
 
 
 def return_route(
@@ -69,14 +99,21 @@ def return_route(
     upper_right = np.array([box[2], box[0]])
     # Euclidean heuristic. If a vertex is not in the box, make its heuristic value infinite
     # so that it is never extended
+    indices = np.all(
+        np.logical_and(lower_left <= vertices, vertices <= upper_right), axis=1
+    )
+    # print(np.count_nonzero(indices))
+    inside.a = np.logical_and(indices, leaves.a)
+    print(np.count_nonzero(inside.a))
+    G.set_vertex_filter(inside)
+
     def distance_heuristic(v, target, pos):
         return (
-            math.sqrt(np.sum(np.square(pos[v].a - pos[target].a)))
-            if np.all(np.less(lower_left, pos[v].a))
-            and np.all(np.less(pos[v].a, upper_right))
-            else math.inf
+            haversine(pos[v].a[0], pos[v].a[1], pos[target].a[0], pos[target].a[1])
+            * 1000
         )
 
+    print(distance_heuristic(source, target, pos))
     route = astar(G, source, target, attribute, distance_heuristic, pos)
     return [{"x": x[r], "y": y[r]} for r in route]
 

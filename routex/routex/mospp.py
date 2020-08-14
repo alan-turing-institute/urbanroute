@@ -104,7 +104,6 @@ def mospp(
                         print(vertex_label.resource)
                         print(new_label.resource)
                         print("end")
-                        pass
                         discard = True
                 for vertex_label in vertex_dict[out_edge.target()]:
                     if new_label.dominate(vertex_label):
