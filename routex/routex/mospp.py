@@ -53,33 +53,6 @@ for e in G.edges():
     pollution[e] = float(mean[e]) * float(length[e])
 
 
-"""g = Graph()
-v1 = g.add_vertex()
-v2 = g.add_vertex()
-v3 = g.add_vertex()
-v4 = g.add_vertex()
-
-e1 = g.add_edge(v1, v2)
-e2 = g.add_edge(v1, v3)
-e3 = g.add_edge(v2, v4)
-e4 = g.add_edge(v3, v4)
-e5 = g.add_edge(v1, v4)
-cost_1 = g.new_edge_property("int")
-cost_1[e1] = 1
-cost_1[e2] = 0
-cost_1[e3] = 1
-cost_1[e4] = 0
-cost_1[e5] = 1
-
-cost_2 = g.new_edge_property("int")
-cost_2[e1] = 0
-cost_2[e2] = 1
-cost_2[e3] = 0
-cost_2[e4] = 1
-cost_2[e5] = 1
-"""
-
-
 def mospp(
     source: Vertex, target: Vertex, cost_1: EdgePropertyMap, cost_2: EdgePropertyMap
 ):
@@ -100,17 +73,9 @@ def mospp(
                 discard = False
                 for vertex_label in vertex_dict[out_edge.target()]:
                     if vertex_label.dominate(new_label):
-                        print("dominates")
-                        print(vertex_label.resource)
-                        print(new_label.resource)
-                        print("end")
                         discard = True
                 for vertex_label in vertex_dict[out_edge.target()]:
                     if new_label.dominate(vertex_label):
-                        print("dominates")
-                        print(new_label.resource)
-                        print(vertex_label.resource)
-                        print("end")
                         vertex_dict[out_edge.target()].remove(vertex_label)
 
                 if not discard:
@@ -138,7 +103,6 @@ source = 69
 target = 570
 vcolor[source] = "blue"
 vcolor[target] = "blue"
-# mospp(v1, v4, cost_1, cost_2)
 mospp(G.vertex(source), G.vertex(target), float_length, pollution)
 graph_draw(G, pos, vertex_text=number, vertex_fill_color=vcolor)
 

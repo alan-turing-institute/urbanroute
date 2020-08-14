@@ -47,7 +47,7 @@ path = 0
 
 def haversine(lon1, lat1, lon2, lat2):
     """
-    Great circle distance between two points
+    Great circle distance between two points, in metres
     """
     # convert decimal degrees to radians
     lon1, lat1, lon2, lat2 = map(math.radians, [lon1, lat1, lon2, lat2])
@@ -60,16 +60,18 @@ def haversine(lon1, lat1, lon2, lat2):
         + math.cos(lat1) * math.cos(lat2) * math.sin(dlon / 2) ** 2
     )
     c = 2 * math.asin(math.sqrt(a))
-    r = 6378.137  # Radius of earth in kilometers. Use 3956 for miles
-    return c * r
+    r = 6378.137  # radius of earth in kilometers.
+    return c * r * 1000
 
 
 del_list = G.new_vertex_property("bool")
 new_edges = []
 for v in G.vertices():
     del_list[v] = True
+    # remove leaf nodes
     if v.out_degree() == 0 or v.in_degree() == 0:
         del_list[v] = False
+    # remove nodes in paths so long as they are not more than 50m away from either of their neighbours
     if v.out_degree() == 1 and v.in_degree() == 1:
         cut = True
         new_edge_length = 0
@@ -97,18 +99,20 @@ for v in G.vertices():
                 > 50
             ):
                 cut = False
+            # calculate length
             new_edge_length = new_edge_length + length[outof]
 
         if cut:
             e = (into.source(), outof.target(), new_edge_length)
             new_edges.append(e)
+            # remove vertex
             del_list[v] = False
 
+# create a new edge bridging the removed vertex
 for e in new_edges:
     new = G.add_edge(e[0], e[1])
     length[new] = e[2]
 
-print(np.count_nonzero(del_list.a))
 # set up numpy array of vertices with just the
 vertices = G.get_vertices(vprops=[float_x, float_y])
 vertices = np.delete(vertices, 0, 1)
@@ -140,20 +144,16 @@ def return_route(
     indices = np.all(
         np.logical_and(lower_left <= vertices, vertices <= upper_right), axis=1
     )
-    # print(np.count_nonzero(indices))
+    # include the main delete list as a filter also
     inside.a = np.logical_and(indices, del_list.a)
+    # preserve source and target
     inside[source] = True
     inside[target] = True
-    print(np.count_nonzero(inside.a))
     G.set_vertex_filter(inside)
 
     def distance_heuristic(v, target, pos):
-        return (
-            haversine(pos[v].a[0], pos[v].a[1], pos[target].a[0], pos[target].a[1])
-            * 1000
-        )
+        return haversine(pos[v].a[0], pos[v].a[1], pos[target].a[0], pos[target].a[1])
 
-    print(target)
     route = astar(G, source, target, attribute, distance_heuristic, pos)
     return [{"x": x[r], "y": y[r]} for r in route]
 

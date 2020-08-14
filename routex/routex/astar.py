@@ -11,17 +11,9 @@ class RouteVisitor(AStarVisitor):
         self.target = target
         self.count = 0
 
-    def examine_vertex(self, v: int):
-        self.count = self.count + 1
-        # we have examined too many vertices, running out of memory
-        if self.count > 20000:
-            # logger.log("The graph is too large")
-            raise Exception("Search graph is too big")
-
     def edge_relaxed(self, e: Tuple[int, int]):
         # stop if the target vertex has been reached
         if e.target() == self.target:
-            print("stopped", self.count)
             # logger.log("Stopped after examining %s vertices", self.count)
             raise StopSearch()
 
@@ -41,14 +33,13 @@ def astar(
     Returns: a list of vertices from the source to the target
     """
     # run A*
-    dist, pred = astar_search(
+    pred = astar_search(
         G,
         weight=G.edge_properties[edge_attribute],
         source=source,
         visitor=RouteVisitor(target),
         heuristic=lambda v: heuristic(v, target, pos),
-    )
-    print(dist[target])
+    )[1]
 
     # backtrack through the graph to the source
     route = []
