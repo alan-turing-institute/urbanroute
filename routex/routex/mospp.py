@@ -1,13 +1,11 @@
-"""Perform A* on the graph"""
+"""Perform MOSPP on the graph"""
 import heapq
 import numpy as np
 from graph_tool.all import (
-    Graph,
     Vertex,
     EdgePropertyMap,
     load_graph,
     graph_draw,
-    graphviz_draw,
 )
 
 
@@ -23,39 +21,16 @@ class Label:
         return self.resource > other.resource
 
     def dominate(self, other):
+        """Returns true iff this label dominates the other provided label"""
         return np.all(np.less_equal(self.resource, other.resource)) and np.any(
             np.less(self.resource, other.resource)
         )
 
 
-G = load_graph("Trafalgar.gt")
-G.list_properties()
-vcolor = G.new_vertex_property("string")
-pos = G.new_vertex_property("vector<double>")
-float_length = G.new_edge_property("double")
-float_x = G.new_vertex_property("double")
-float_y = G.new_vertex_property("double")
-G.edge_properties["float_length"] = float_length
-pollution = G.new_edge_property("double")
-mean = G.edge_properties["NO2_mean"]
-length = G.edge_properties["length"]
-x = G.vertex_properties["x"]
-y = G.vertex_properties["y"]
-number = G.new_vertex_property("string")
-for v in G.get_vertices():
-    vcolor[v] = "red"
-    pos[v] = [float(x[v]), float(y[v])]
-    float_x[v] = float(x[v])
-    float_y[v] = float(y[v])
-    number[v] = str(G.vertex_index[v])
-for e in G.edges():
-    float_length[e] = float(length[e])
-    pollution[e] = float(mean[e]) * float(length[e])
-
-
 def mospp(
     source: Vertex, target: Vertex, cost_1: EdgePropertyMap, cost_2: EdgePropertyMap
 ):
+    """Run MOSPP on graph. Returns list of routes, each route being a list of vertices"""
     labels = [Label(None, np.array([0, 0]), source)]
     vertex_dict = {}
     while len(labels) != 0:
@@ -84,25 +59,16 @@ def mospp(
             else:
                 vertex_dict[out_edge.target()] = [new_label]
                 heapq.heappush(labels, new_label)
-    for key in vertex_dict:
-        print(key, len(vertex_dict[key]))
-    color = "green"
+    routes = []
+    route = []
+    route.append(target)
     for label in vertex_dict[target]:
-        print(label.resource)
         v = target
         label_tracker = label
         while v != source:
             label_tracker = label_tracker.pred
             v = label_tracker.assoc
-            if v != source and v != target:
-                vcolor[v] = color
-        color = "purple"
-
-
-source = 69
-target = 570
-vcolor[source] = "blue"
-vcolor[target] = "blue"
-mospp(G.vertex(source), G.vertex(target), float_length, pollution)
-graph_draw(G, pos, vertex_text=number, vertex_fill_color=vcolor)
-
+            route.append(v)
+        routes.append(route)
+        route = []
+    return routes

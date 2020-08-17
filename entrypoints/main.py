@@ -7,9 +7,9 @@ import math
 import typer
 import numpy as np
 from fastapi import FastAPI
-from graph_tool.all import load_graph, Edge
+from graph_tool.all import load_graph
 from cleanair.loggers import get_logger
-from routex import astar
+from routex import astar, mospp
 from urbanroute.geospatial import ellipse_bounding_box, coord_match
 
 
@@ -18,7 +18,7 @@ logger = get_logger("Shortest path entrypoint")
 logger.setLevel(logging.DEBUG)
 logger.info("Loading graph of London...")
 start = time.time()
-G = load_graph("../graphs/London.gt")
+G = load_graph("../graphs/Trafalgar.gt")
 logger.info("Graph loaded in %s seconds.", time.time() - start)
 logger.info("%s nodes and %s edges in the graph.", G.num_vertices, G.num_edges)
 
@@ -28,8 +28,8 @@ float_length = G.new_edge_property("double")
 float_x = G.new_vertex_property("double")
 float_y = G.new_vertex_property("double")
 G.edge_properties["float_length"] = float_length
-# pollution = G.new_edge_property("double")
-# mean = G.edge_properties["NO2_mean"]
+pollution = G.new_edge_property("double")
+mean = G.edge_properties["NO2_mean"]
 length = G.edge_properties["length"]
 x = G.vertex_properties["x"]
 y = G.vertex_properties["y"]
@@ -39,7 +39,7 @@ for v in G.get_vertices():
     float_y[v] = float(y[v])
 for e in G.edges():
     float_length[e] = float(length[e])
-    # pollution[e] = (float(mean[e])
+    pollution[e] = float(mean[e]) * float(length[e])
 
 inside = G.new_vertex_property("bool")
 path = 0
@@ -71,10 +71,14 @@ for v in G.vertices():
     # remove leaf nodes
     if v.out_degree() == 0 or v.in_degree() == 0:
         del_list[v] = False
-    # remove nodes in paths so long as they are not more than 50m away from either of their neighbours
+    # remove nodes in paths so long as they are not more
+    # than 50m away from either of their neighbours
     if v.out_degree() == 1 and v.in_degree() == 1:
         cut = True
         new_edge_length = 0
+        new_edge_pollution = 0
+        into = None
+        outof = None
         for into in v.in_edges():
             if (
                 haversine(
@@ -87,6 +91,7 @@ for v in G.vertices():
             ):
                 cut = False
             new_edge_length = length[into]
+            new_edge_pollution = pollution[into]
 
         for outof in v.out_edges():
             if (
@@ -101,9 +106,10 @@ for v in G.vertices():
                 cut = False
             # calculate length
             new_edge_length = new_edge_length + length[outof]
+            new_edge_pollution = new_edge_pollution + pollution[outof]
 
-        if cut:
-            e = (into.source(), outof.target(), new_edge_length)
+        if cut and (not into is None) and (not outof is None):
+            e = (into.source(), outof.target(), new_edge_length, new_edge_pollution)
             new_edges.append(e)
             # remove vertex
             del_list[v] = False
@@ -112,6 +118,7 @@ for v in G.vertices():
 for e in new_edges:
     new = G.add_edge(e[0], e[1])
     length[new] = e[2]
+    pollution[new] = e[3]
 
 # set up numpy array of vertices with just the
 vertices = G.get_vertices(vprops=[float_x, float_y])
@@ -158,6 +165,46 @@ def return_route(
     return [{"x": x[r], "y": y[r]} for r in route]
 
 
+def return_mospp(
+    source_coord: Tuple[float, float],
+    target_coord: Tuple[float, float],
+    attribute_1: str,
+    attribute_2: str,
+) -> List[Dict[str, str]]:
+    """
+    Find the least polluted path.
+    secretfile: Path to the database secretfile.
+    instance_id: Id of the air quality trained model.
+    source: (source latitude, source longitude) for source point.
+    target: (target latitude, target longitude) for target point.
+    verbose: enable debug logging.
+    """
+    # find vertices in the graph that are close enough to the start/target coordinates
+    # any vertex within the minimum rectangle is sufficient
+    source = coord_match(vertices, source_coord, pos)
+    target = coord_match(vertices, target_coord, pos)
+    # create box around the source and target vertices to eliminate points
+    # that are (probably) too far away to be part of a shortest path
+    box = ellipse_bounding_box(pos[source], pos[target])
+
+    lower_left = np.array([box[3], box[1]])
+    upper_right = np.array([box[2], box[0]])
+    # Euclidean heuristic. If a vertex is not in the box, make its heuristic value infinite
+    # so that it is never extended
+    indices = np.all(
+        np.logical_and(lower_left <= vertices, vertices <= upper_right), axis=1
+    )
+    # include the main delete list as a filter also
+    inside.a = np.logical_and(indices, del_list.a)
+    # preserve source and target
+    inside[source] = True
+    inside[target] = True
+    G.set_vertex_filter(inside)
+
+    routes = mospp(G.vertex(source), G.vertex(target), float_length, pollution)
+    return [[{"x": x[r], "y": y[r]} for r in route] for route in routes]
+
+
 def main(  # pylint: disable=too-many-arguments
     source_lat: float = 51.510357,
     source_long: float = -0.116773,
@@ -193,3 +240,39 @@ async def get_route(
     return return_route(
         (source_lat, source_long), (target_lat, target_long), "float_length"
     )
+
+
+@APP.get("/pollution/")
+async def get_pollution(
+    source_lat: float, source_long: float, target_lat: float, target_long: float
+) -> List[Dict[str, str]]:
+    """
+    API route to get route from A to B.
+    sourceLat: latitude of the source point.
+    sourceLong: longitude of the source point.
+    targetLat: latitude of the target point.
+    targetLong: longitude of the target point.
+    """
+    return return_route(
+        (source_lat, source_long), (target_lat, target_long), "pollution"
+    )
+
+
+@APP.get("/mospp/")
+async def get_mospp(
+    source_lat: float, source_long: float, target_lat: float, target_long: float
+) -> List[Dict[str, str]]:
+    """
+    API route to get route from A to B.
+    sourceLat: latitude of the source point.
+    sourceLong: longitude of the source point.
+    targetLat: latitude of the target point.
+    targetLong: longitude of the target point.
+    """
+    return return_mospp(
+        (source_lat, source_long),
+        (target_lat, target_long),
+        "float_length",
+        "pollution",
+    )
+

@@ -42,6 +42,6 @@ def coord_match(vertices, target_coord: np.array, pos, minimum=0.0009):
                 )
             )
             target = v
-    if target == None:
+    if target is None:
         return coord_match(vertices, target_coord, pos, minimum * 2)
     return target

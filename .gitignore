@@ -8,3 +8,4 @@ __pycache__
 .vscode
 graphs/*.gt
 apps/routing/node_modules
+apps/routing/semantic
