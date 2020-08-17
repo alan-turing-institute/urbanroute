@@ -1,12 +1,7 @@
 """Perform MOSPP on the graph"""
 import heapq
 import numpy as np
-from graph_tool.all import (
-    Vertex,
-    EdgePropertyMap,
-    load_graph,
-    graph_draw,
-)
+from graph_tool.all import Vertex, EdgePropertyMap
 
 
 class Label:

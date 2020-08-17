@@ -168,10 +168,7 @@ def return_route(
 
 
 def return_mospp(
-    source_coord: Tuple[float, float],
-    target_coord: Tuple[float, float],
-    attribute_1: str,
-    attribute_2: str,
+    source_coord: Tuple[float, float], target_coord: Tuple[float, float],
 ) -> List[Dict[str, str]]:
     """
     Find the least polluted path.
@@ -269,10 +266,4 @@ async def get_mospp(
     targetLat: latitude of the target point.
     targetLong: longitude of the target point.
     """
-    return return_mospp(
-        (source_lat, source_long),
-        (target_lat, target_long),
-        "float_length",
-        "pollution",
-    )
-
+    return return_mospp((source_lat, source_long), (target_lat, target_long))
