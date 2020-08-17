@@ -1,5 +1,7 @@
 "use strict";
 mapboxgl.accessToken = 'pk.eyJ1IjoiamFtZXNjcmFzdGVyIiwiYSI6ImNrYmo0NWlxcTBsaDYycnB2YmU5aTgzN3EifQ.Or9ka8Q8WOKvNEXTznnVFw';
+document.getElementById('distance').checked = true
+
 let map = new mapboxgl.Map({
     container: 'map',
     style: 'mapbox://styles/mapbox/streets-v11?optimize=true', // stylesheet location
@@ -77,13 +79,17 @@ let directionsControl = new MapboxDirections({
     flyTo: false
 });
 
+let route = "route"
 let origin = undefined;
 let destination = undefined;
+function setVariable(result) {
+    route = result
+}
 //when called from the mapbox plugin, if both origin and destination are present, draw a route
 window.getRoute = function processRoute() {
     if (origin && destination) {
         console.log(origin.feature.geometry.coordinates);
-        fetch(`http://127.0.0.1:8000/route/?source_lat=${origin.feature.geometry.coordinates[1]}&source_long=${origin.feature.geometry.coordinates[0]}&target_lat=${destination.feature.geometry.coordinates[1]}&target_long=${destination.feature.geometry.coordinates[0]}`)
+        fetch(`http://127.0.0.1:8000/${route}/?source_lat=${origin.feature.geometry.coordinates[1]}&source_long=${origin.feature.geometry.coordinates[0]}&target_lat=${destination.feature.geometry.coordinates[1]}&target_long=${destination.feature.geometry.coordinates[0]}`)
             .then(response => response.json()).then(data => {
                 map.setLayoutProperty('route', 'visibility', 'visible');
                 map.getSource('route').setData({
@@ -92,7 +98,6 @@ window.getRoute = function processRoute() {
                     'geometry': {
                         'type': 'LineString',
                         'coordinates': data.map(point => [point.x, point.y])
-                        //[origin.feature.geometry.coordinates, destination.feature.geometry.coordinates]
                     }
                 })
             });

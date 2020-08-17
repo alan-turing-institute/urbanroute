@@ -41,13 +41,14 @@
                     <label>Variable</label>
                     <div class="field">
                         <div class="ui radio checkbox">
-                            <input type="radio" name="variable">
+                            <input id='distance' type="radio" name="variable" onclick="setVariable(this.value)"
+                                value="route">
                             <label>Distance</label>
                         </div>
                     </div>
                     <div class="field">
                         <div class="ui radio checkbox">
-                            <input type="radio" name="variable">
+                            <input type="radio" name="variable" onclick="setVariable(this.value)" value="pollution">
                             <label>Pollution</label>
                         </div>
                     </div>

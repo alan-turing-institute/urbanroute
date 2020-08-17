@@ -7,7 +7,7 @@ import math
 import typer
 import numpy as np
 from fastapi import FastAPI
-from graph_tool.all import load_graph
+from graph_tool.all import load_graph, EdgePropertyMap
 from cleanair.loggers import get_logger
 from routex import astar, mospp
 from urbanroute.geospatial import ellipse_bounding_box, coord_match
@@ -126,7 +126,9 @@ vertices = np.delete(vertices, 0, 1)
 
 
 def return_route(
-    source_coord: Tuple[float, float], target_coord: Tuple[float, float], attribute: str
+    source_coord: Tuple[float, float],
+    target_coord: Tuple[float, float],
+    attribute: EdgePropertyMap,
 ) -> List[Dict[str, str]]:
     """
     Find the least polluted path.
@@ -218,7 +220,7 @@ def main(  # pylint: disable=too-many-arguments
     targetLong: longitude of the target point.
     """
     return return_route(
-        (source_lat, source_long), (target_lat, target_long), "float_length"
+        (source_lat, source_long), (target_lat, target_long), float_length
     )
 
 
@@ -238,7 +240,7 @@ async def get_route(
     targetLong: longitude of the target point.
     """
     return return_route(
-        (source_lat, source_long), (target_lat, target_long), "float_length"
+        (source_lat, source_long), (target_lat, target_long), float_length
     )
 
 
@@ -253,9 +255,7 @@ async def get_pollution(
     targetLat: latitude of the target point.
     targetLong: longitude of the target point.
     """
-    return return_route(
-        (source_lat, source_long), (target_lat, target_long), "pollution"
-    )
+    return return_route((source_lat, source_long), (target_lat, target_long), pollution)
 
 
 @APP.get("/mospp/")
