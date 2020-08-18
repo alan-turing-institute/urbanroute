@@ -2,7 +2,7 @@
 mapboxgl.accessToken = 'pk.eyJ1IjoiamFtZXNjcmFzdGVyIiwiYSI6ImNrYmo0NWlxcTBsaDYycnB2YmU5aTgzN3EifQ.Or9ka8Q8WOKvNEXTznnVFw';
 document.getElementById('distance').checked = true
 document.getElementById('A*').checked = true
-
+document.getElementById('pollutionToggle').checked = true
 let map = new mapboxgl.Map({
     container: 'map',
     style: 'mapbox://styles/mapbox/streets-v11?optimize=true', // stylesheet location
@@ -73,6 +73,15 @@ map.addControl(
     })
 );
 
+let pollutionOverlay = true;
+function togglePollutionOverlay() {
+    if (pollutionOverlay) {
+        map.setLayoutProperty('overlay', 'visibility', 'none');
+    } else {
+        map.setLayoutProperty('overlay', 'visibility', 'visible');
+    }
+    pollutionOverlay = !pollutionOverlay;
+}
 //add direction controls
 let directionsControl = new MapboxDirections({
     accessToken: mapboxgl.accessToken,
