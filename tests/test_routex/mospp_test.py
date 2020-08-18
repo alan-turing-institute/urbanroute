@@ -4,7 +4,7 @@ from routex import mospp
 
 
 def test_mospp_large():
-    G = load_graph("../../graphs/Trafalgar.gt")
+    G = load_graph("./graphs/Trafalgar.gt")
     G.list_properties()
     vcolor = G.new_vertex_property("string")
     pos = G.new_vertex_property("vector<double>")

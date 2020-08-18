@@ -27,11 +27,13 @@ jobs:
             - pip install "git+https://urbanrouting-ci:$CLEANAIRTOKEN@github.com/alan-turing-institute/clean-air-infrastructure.git/#egg=pkg&subdirectory=containers/cleanair"
             # Install requirements and modules
             - pip install -r requirements.txt
+            - pip install pytest
             - pip install -e urbanroute
             - pip install -e routex
         script:
             # Run tests with pytest
             - python -m pytest tests/test_urbanroute
+            - python -m pytest tests/test_routex
             # Check linting with pylint
             - pylint --rcfile .pylintrc urbanroute/*
             - pylint --rcfile .pylintrc routex/*

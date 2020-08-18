@@ -6,6 +6,6 @@ __pycache__
 
 # misc
 .vscode
-graphs/*.gt
+graphs/London.gt
 apps/routing/node_modules
 apps/routing/semantic
