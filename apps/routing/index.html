@@ -25,13 +25,14 @@
                     <label>Algorithm</label>
                     <div class="field">
                         <div class="ui radio checkbox">
-                            <input type="radio" name="algorithm" checked="checked">
+                            <input id="A*" type="radio" name="algorithm" onclick="setAlgorithm(this.value)"
+                                checked="checked" value="A*">
                             <label>A* search</label>
                         </div>
                     </div>
                     <div class="field">
                         <div class="ui radio checkbox">
-                            <input type="radio" name="algorithm">
+                            <input type="radio" name="algorithm" onclick="setAlgorithm(this.value)" value="mospp">
                             <label>Multi-objective</label>
                         </div>
                     </div>

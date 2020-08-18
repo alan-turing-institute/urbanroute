@@ -1,6 +1,7 @@
 "use strict";
 mapboxgl.accessToken = 'pk.eyJ1IjoiamFtZXNjcmFzdGVyIiwiYSI6ImNrYmo0NWlxcTBsaDYycnB2YmU5aTgzN3EifQ.Or9ka8Q8WOKvNEXTznnVFw';
 document.getElementById('distance').checked = true
+document.getElementById('A*').checked = true
 
 let map = new mapboxgl.Map({
     container: 'map',
@@ -79,11 +80,25 @@ let directionsControl = new MapboxDirections({
     flyTo: false
 });
 
+let variable = "route"
+let algorithm = "A*"
 let route = "route"
 let origin = undefined;
 let destination = undefined;
 function setVariable(result) {
-    route = result
+    variable = result
+    route = variable
+    algorithm = "A*"
+    document.getElementById('A*').checked = true
+}
+function setAlgorithm(result) {
+    algorithm = result
+    if (algorithm === "A*") {
+        route = variable
+    } else {
+        route = algorithm
+    }
+
 }
 //when called from the mapbox plugin, if both origin and destination are present, draw a route
 window.getRoute = function processRoute() {
