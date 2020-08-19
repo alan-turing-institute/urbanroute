@@ -53,7 +53,7 @@ map.on('load', () => {
             'line-cap': 'round'
         },
         'paint': {
-            'line-color': '#888',
+            'line-color': ['get', 'color'],
             'line-width': 8
         }
     });
@@ -120,7 +120,9 @@ window.getRoute = function processRoute() {
                 if (algorithm == "A*") {
                     map.getSource('route').setData({
                         'type': 'Feature',
-                        'properties': {},
+                        'properties': {
+                            'color': '#888'
+                        },
                         'geometry': {
                             'type': 'LineString',
                             'coordinates': data.map(point => [point.x, point.y])
@@ -131,15 +133,19 @@ window.getRoute = function processRoute() {
                         'type': 'FeatureCollection',
                         'features': []
                     }
+                    let color = rgb2hsl(1, 0, 0)
                     for (let line of data) {
                         source.features.push({
                             'type': 'Feature',
-                            'properties': {},
+                            'properties': {
+                                'color': rgbToHex(...hsv2rgb(...color).map(value => Math.floor(value * 255)))
+                            },
                             'geometry': {
                                 'type': 'LineString',
                                 'coordinates': line.map(point => [point.x, point.y])
                             }
                         });
+                        color[0] = color[0] + 60 % 360
                     }
                     map.getSource('route').setData(source)
                 }
@@ -157,3 +163,15 @@ directionsControl.on('route', (route) => { console.log(route) });
 
 //add direction controls
 map.addControl(directionsControl, 'top-left');
+function hsv2rgb(h, s, v) {
+    let f = (n, k = (n + h / 60) % 6) => v - v * s * Math.max(Math.min(k, 4 - k, 1), 0);
+    return [f(5), f(3), f(1)];
+}
+function rgb2hsl(r, g, b) {
+    let a = Math.max(r, g, b), n = a - Math.min(r, g, b), f = (1 - Math.abs(a + a - n - 1));
+    let h = n && ((a == r) ? (g - b) / n : ((a == g) ? 2 + (b - r) / n : 4 + (r - g) / n));
+    return [60 * (h < 0 ? h + 6 : h), f ? n / f : 0, (a + a - n) / 2];
+}
+function rgbToHex(r, g, b) {
+    return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+}
