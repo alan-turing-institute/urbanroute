@@ -63,6 +63,13 @@ def main(
     result = ResultQuery(secretfile=secretfile)
 
     logger.info("Loading air pollution results for the hex grid at time %s", timestamp)
+
+    # DataFrame: road_id, startnode, endnode, NO2_mean, NO2_var, length, geom(str)
+    # for loop (starnode, endnode)
+
+    # 1. create a empty graph tools graph
+    # 2. load the graph from G.add_edge_list(df.values, hashed=True)
+    # 3. save the graph tools to a file
     result_sql: str = result.pollution_on_roads(instance_id, timestamp, output_type="sql")
     gdf = gpd.GeoDataFrame.from_postgis(result_sql, result.dbcnxn.engine, crs=4326)
     logger.debug("%s rows returned from the result query.", len(gdf))
