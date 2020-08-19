@@ -115,18 +115,37 @@ window.getRoute = function processRoute() {
         console.log(origin.feature.geometry.coordinates);
         fetch(`http://127.0.0.1:8000/${route}/?source_lat=${origin.feature.geometry.coordinates[1]}&source_long=${origin.feature.geometry.coordinates[0]}&target_lat=${destination.feature.geometry.coordinates[1]}&target_long=${destination.feature.geometry.coordinates[0]}`)
             .then(response => response.json()).then(data => {
+                console.log(data)
                 map.setLayoutProperty('route', 'visibility', 'visible');
-                map.getSource('route').setData({
-                    'type': 'Feature',
-                    'properties': {},
-                    'geometry': {
-                        'type': 'LineString',
-                        'coordinates': data.map(point => [point.x, point.y])
+                if (algorithm == "A*") {
+                    map.getSource('route').setData({
+                        'type': 'Feature',
+                        'properties': {},
+                        'geometry': {
+                            'type': 'LineString',
+                            'coordinates': data.map(point => [point.x, point.y])
+                        }
+                    })
+                } else {
+                    let source = {
+                        'type': 'FeatureCollection',
+                        'features': []
                     }
-                })
-            });
+                    for (let line of data) {
+                        source.features.push({
+                            'type': 'Feature',
+                            'properties': {},
+                            'geometry': {
+                                'type': 'LineString',
+                                'coordinates': line.map(point => [point.x, point.y])
+                            }
+                        });
+                    }
+                    map.getSource('route').setData(source)
+                }
 
-    };
+            });
+    }
 }
 //when destination/origin updated on input UI, check to see if route can be formed
 directionsControl.on('origin', (location) => { origin = location; })

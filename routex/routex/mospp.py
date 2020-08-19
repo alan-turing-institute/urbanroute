@@ -50,7 +50,7 @@ def mospp(
 
                 if not discard:
                     vertex_dict[out_edge.target()].append(new_label)
-
+                    heapq.heappush(labels, new_label)
             else:
                 vertex_dict[out_edge.target()] = [new_label]
                 heapq.heappush(labels, new_label)
@@ -66,4 +66,5 @@ def mospp(
             route.append(v)
         routes.append(route)
         route = []
+    print(routes)
     return routes
