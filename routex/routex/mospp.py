@@ -2,6 +2,7 @@
 import heapq
 import numpy as np
 from graph_tool.all import Vertex, EdgePropertyMap
+import matplotlib.pyplot as plt
 
 
 class Label:
@@ -11,6 +12,7 @@ class Label:
         self.pred = pred
         self.resource = resource
         self.assoc = assoc
+        self.removed = False
 
     def __gt__(self, other):
         return self.resource > other.resource
@@ -30,34 +32,37 @@ def mospp(
     vertex_dict = {}
     while len(labels) != 0:
         current = heapq.heappop(labels)
-        for out_edge in current.assoc.out_edges():
-            new_label = Label(
-                current,
-                [
-                    current.resource[0] + cost_1[out_edge],
-                    current.resource[1] + cost_2[out_edge],
-                ],
-                out_edge.target(),
-            )
-            if out_edge.target() in vertex_dict:
-                discard = False
-                for vertex_label in vertex_dict[out_edge.target()]:
-                    if vertex_label.dominate(new_label):
-                        discard = True
-                for vertex_label in vertex_dict[out_edge.target()]:
-                    if new_label.dominate(vertex_label):
-                        vertex_dict[out_edge.target()].remove(vertex_label)
+        if not current.removed:
+            for out_edge in current.assoc.out_edges():
+                new_label = Label(
+                    current,
+                    [
+                        current.resource[0] + cost_1[out_edge],
+                        current.resource[1] + cost_2[out_edge],
+                    ],
+                    out_edge.target(),
+                )
+                if out_edge.target() in vertex_dict:
+                    discard = False
+                    for vertex_label in vertex_dict[out_edge.target()]:
+                        if vertex_label.dominate(new_label):
+                            discard = True
+                    for vertex_label in vertex_dict[out_edge.target()]:
+                        if new_label.dominate(vertex_label):
+                            vertex_dict[out_edge.target()].remove(vertex_label)
+                            vertex_label.removed = True
 
-                if not discard:
-                    vertex_dict[out_edge.target()].append(new_label)
+                    if not discard:
+                        vertex_dict[out_edge.target()].append(new_label)
+                        heapq.heappush(labels, new_label)
+                else:
+                    vertex_dict[out_edge.target()] = [new_label]
                     heapq.heappush(labels, new_label)
-            else:
-                vertex_dict[out_edge.target()] = [new_label]
-                heapq.heappush(labels, new_label)
     routes = []
     route = []
     route.append(target)
     for label in vertex_dict[target]:
+        # print(label.resource)
         v = target
         label_tracker = label
         while v != source:
@@ -66,5 +71,12 @@ def mospp(
             route.append(v)
         routes.append(route)
         route = []
-    print(routes)
+
+    # plt.scatter(
+    #   [r.resource[0] for r in vertex_dict[target]],
+    #   [r.resource[1] for r in vertex_dict[target]],
+    # )
+    # plt.ylabel("Pollution")
+    # plt.xlabel("Distance")
+    # plt.show()
     return routes
