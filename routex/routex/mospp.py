@@ -2,7 +2,6 @@
 import heapq
 import numpy as np
 from graph_tool.all import Vertex, EdgePropertyMap
-import matplotlib.pyplot as plt
 
 
 class Label:
@@ -62,7 +61,6 @@ def mospp(
     route = []
     route.append(target)
     for label in vertex_dict[target]:
-        # print(label.resource)
         v = target
         label_tracker = label
         while v != source:
@@ -71,12 +69,4 @@ def mospp(
             route.append(v)
         routes.append(route)
         route = []
-
-    # plt.scatter(
-    #   [r.resource[0] for r in vertex_dict[target]],
-    #   [r.resource[1] for r in vertex_dict[target]],
-    # )
-    # plt.ylabel("Pollution")
-    # plt.xlabel("Distance")
-    # plt.show()
     return routes
