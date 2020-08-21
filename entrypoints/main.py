@@ -3,15 +3,14 @@
 from typing import Tuple, List, Dict
 import logging
 import time
-import math
 import typer
 import numpy as np
 from fastapi import FastAPI
 from graph_tool.all import load_graph, EdgePropertyMap
+from haversine import haversine
 from cleanair.loggers import get_logger
 from routex import astar, mospp
 from urbanroute.geospatial import ellipse_bounding_box, coord_match
-
 
 APP = FastAPI()
 logger = get_logger("Shortest path entrypoint")
@@ -44,26 +43,6 @@ for e in G.edges():
 inside = G.new_vertex_property("bool")
 path = 0
 
-
-def haversine(lon1, lat1, lon2, lat2):
-    """
-    Great circle distance between two points, in metres
-    """
-    # convert decimal degrees to radians
-    lon1, lat1, lon2, lat2 = map(math.radians, [lon1, lat1, lon2, lat2])
-
-    # haversine formula
-    dlon = lon2 - lon1
-    dlat = lat2 - lat1
-    a = (
-        math.sin(dlat / 2) ** 2
-        + math.cos(lat1) * math.cos(lat2) * math.sin(dlon / 2) ** 2
-    )
-    c = 2 * math.asin(math.sqrt(a))
-    r = 6378.137  # radius of earth in kilometers.
-    return c * r * 1000
-
-
 del_list = G.new_vertex_property("bool")
 new_edges = []
 for v in G.vertices():
@@ -82,10 +61,9 @@ for v in G.vertices():
         for into in v.in_edges():
             if (
                 haversine(
-                    pos[v].a[0],
-                    pos[v].a[1],
-                    pos[into.source()].a[0],
-                    pos[into.source()].a[1],
+                    (pos[v].a[0], pos[v].a[1]),
+                    (pos[into.source()].a[0], pos[into.source()].a[1]),
+                    unit="m",
                 )
                 > 50
             ):
@@ -96,10 +74,9 @@ for v in G.vertices():
         for outof in v.out_edges():
             if (
                 haversine(
-                    pos[v].a[0],
-                    pos[v].a[1],
-                    pos[outof.target()].a[0],
-                    pos[outof.target()].a[1],
+                    (pos[v].a[0], pos[v].a[1]),
+                    (pos[outof.target()].a[0], pos[outof.target()].a[1]),
+                    unit="m",
                 )
                 > 50
             ):
@@ -120,12 +97,12 @@ for e in new_edges:
     length[new] = e[2]
     pollution[new] = e[3]
 
-# set up numpy array of vertices with just the
+# set up numpy array of vertices with just the position
 vertices = G.get_vertices(vprops=[float_x, float_y])
 vertices = np.delete(vertices, 0, 1)
 
 
-def return_route(
+def return_a_star(
     source_coord: Tuple[float, float],
     target_coord: Tuple[float, float],
     attribute: EdgePropertyMap,
@@ -161,7 +138,9 @@ def return_route(
     G.set_vertex_filter(inside)
 
     def distance_heuristic(v, target, pos):
-        return haversine(pos[v].a[0], pos[v].a[1], pos[target].a[0], pos[target].a[1])
+        return haversine(
+            (pos[v].a[0], pos[v].a[1]), (pos[target].a[0], pos[target].a[1]), unit="m"
+        )
 
     route = astar(G, source, target, attribute, distance_heuristic, pos)
     return [{"x": x[r], "y": y[r]} for r in route]
@@ -216,7 +195,7 @@ def main(  # pylint: disable=too-many-arguments
     targetLat: latitude of the target point.
     targetLong: longitude of the target point.
     """
-    return return_route(
+    return return_a_star(
         (source_lat, source_long), (target_lat, target_long), float_length
     )
 
@@ -236,7 +215,7 @@ async def get_route(
     targetLat: latitude of the target point.
     targetLong: longitude of the target point.
     """
-    return return_route(
+    return return_a_star(
         (source_lat, source_long), (target_lat, target_long), float_length
     )
 
@@ -252,7 +231,9 @@ async def get_pollution(
     targetLat: latitude of the target point.
     targetLong: longitude of the target point.
     """
-    return return_route((source_lat, source_long), (target_lat, target_long), pollution)
+    return return_a_star(
+        (source_lat, source_long), (target_lat, target_long), pollution
+    )
 
 
 @APP.get("/mospp/")
