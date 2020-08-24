@@ -1,4 +1,5 @@
 """Short script used for loading a target graph using osmnx, updating the costs of the edges using up-to-date pollution data, and storing that graph in .gt format"""
+# TODO now that we have the update_graph entrypoint can we remove this?
 from typing import Optional
 import osmnx as ox
 import logging
@@ -6,7 +7,7 @@ import geopandas as gpd
 import os
 import typer
 import matplotlib.pyplot as plt
-from urbanroute.geospatial import update_cost, ellipse_bounding_box
+from urbanroute.geospatial import update_cost
 from urbanroute.queries import HexGridQuery
 from graph_tool.all import *
 from cleanair.loggers import get_logger
