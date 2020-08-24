@@ -32,6 +32,13 @@
                     </div>
                     <div class="field">
                         <div class="ui radio checkbox">
+                            <input id="scalarisation" type="radio" name="algorithm" onclick="setAlgorithm(this.value)"
+                                value="scalarisation">
+                            <label>Linear scalarisation</label>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <div class="ui radio checkbox">
                             <input type="radio" name="algorithm" onclick="setAlgorithm(this.value)" value="mospp">
                             <label>Multi-objective</label>
                         </div>
