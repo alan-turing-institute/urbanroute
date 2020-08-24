@@ -62,12 +62,14 @@ vertices = np.delete(vertices, 0, 1)
 
 
 def distance_heuristic(v, target, pos):
+    """the distance heuristic is the haversine distance, it can also be used for pollution"""
     return haversine(
         (pos[v].a[0], pos[v].a[1]), (pos[target].a[0], pos[target].a[1]), unit="m"
     )
 
 
-def empty_heuristic(v, target, pos):
+def empty_heuristic():
+    """allow using A* without any heuristic"""
     return 0
 
 
