@@ -58,4 +58,19 @@ def test_mospp_small():
     e1 = G.add_edge(1, 3)
     e2 = G.add_edge(3, 4)
     e3 = G.add_edge(1, 2)
-
+    e4 = G.add_edge(2, 4)
+    e5 = G.add_edge(1, 4)
+    c1[e1] = 1
+    c1[e2] = 1
+    c1[e3] = 0
+    c1[e4] = 0
+    c1[e5] = 2
+    c2[e1] = 1
+    c2[e2] = 1
+    c2[e3] = 1
+    c2[e4] = 1
+    c2[e5] = 0
+    assert [
+        [G.vertex_index[r] for r in route]
+        for route in mospp(G.vertex(1), G.vertex(4), c1, c2)
+    ] == [[1, 4], [1, 2, 4]]
