@@ -35,6 +35,8 @@ G.edge_properties["float_length"] = float_length
 pollution = G.new_edge_property("double")
 mean = G.edge_properties["NO2_mean"]
 length = G.edge_properties["length"]
+# used in linear scalarisation
+scalarisation = G.new_edge_property("double")
 x = G.vertex_properties["x"]
 y = G.vertex_properties["y"]
 for v in G.get_vertices():
@@ -133,11 +135,9 @@ def return_linear_scalarisation(
     inside[source] = True
     inside[target] = True
     G.set_vertex_filter(inside)
-
-    scalarisation = G.new_edge_property("float")
-    for v in G.vertices():
-        scalarisation[v] = weight * length[v] + (1 - weight) * pollution[v]
-    route = astar(G, source, target, scalarisation, distance_heuristic, pos)
+    for e in G.edges():
+        scalarisation[e] = weight * float_length[e] + (1 - weight) * pollution[e]
+    route = astar(G, source, target, scalarisation, empty_heuristic, pos)
     return [{"x": x[r], "y": y[r]} for r in route]
 
 

@@ -109,7 +109,13 @@ function setAlgorithm(result) {
     }
 
 }
-weight = 0.5
+let weight = 0.5
+//slider controls
+let slider = document.getElementById("scalarisationRange");
+slider.onchange = function () {
+    weight = this.value / 100;
+    window.getRoute();
+}
 //when called from the mapbox plugin, if both origin and destination are present, draw a route
 window.getRoute = function processRoute() {
     if (origin && destination) {
