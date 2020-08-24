@@ -32,6 +32,7 @@ jobs:
         script:
             # Run tests with pytest
             - python -m pytest tests/test_urbanroute
+            - python -m pytest tests/test_routex
             # Check linting with pylint
             - pylint --rcfile .pylintrc urbanroute/*
             - pylint --rcfile .pylintrc routex/*

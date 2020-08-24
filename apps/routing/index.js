@@ -1,5 +1,8 @@
 "use strict";
 mapboxgl.accessToken = 'pk.eyJ1IjoiamFtZXNjcmFzdGVyIiwiYSI6ImNrYmo0NWlxcTBsaDYycnB2YmU5aTgzN3EifQ.Or9ka8Q8WOKvNEXTznnVFw';
+document.getElementById('distance').checked = true
+document.getElementById('A*').checked = true
+document.getElementById('pollutionToggle').checked = true
 let map = new mapboxgl.Map({
     container: 'map',
     style: 'mapbox://styles/mapbox/streets-v11?optimize=true', // stylesheet location
@@ -50,7 +53,7 @@ map.on('load', () => {
             'line-cap': 'round'
         },
         'paint': {
-            'line-color': '#888',
+            'line-color': ['get', 'color'],
             'line-width': 8
         }
     });
@@ -70,6 +73,15 @@ map.addControl(
     })
 );
 
+let pollutionOverlay = true;
+function togglePollutionOverlay() {
+    if (pollutionOverlay) {
+        map.setLayoutProperty('overlay', 'visibility', 'none');
+    } else {
+        map.setLayoutProperty('overlay', 'visibility', 'visible');
+    }
+    pollutionOverlay = !pollutionOverlay;
+}
 //add direction controls
 let directionsControl = new MapboxDirections({
     accessToken: mapboxgl.accessToken,
@@ -77,27 +89,69 @@ let directionsControl = new MapboxDirections({
     flyTo: false
 });
 
+let variable = "route"
+let algorithm = "A*"
+let route = "route"
 let origin = undefined;
 let destination = undefined;
+function setVariable(result) {
+    variable = result
+    route = variable
+    algorithm = "A*"
+    document.getElementById('A*').checked = true
+}
+function setAlgorithm(result) {
+    algorithm = result
+    if (algorithm === "A*") {
+        route = variable
+    } else {
+        route = algorithm
+    }
+
+}
 //when called from the mapbox plugin, if both origin and destination are present, draw a route
 window.getRoute = function processRoute() {
     if (origin && destination) {
         console.log(origin.feature.geometry.coordinates);
-        fetch(`http://127.0.0.1:8000/route/?source_lat=${origin.feature.geometry.coordinates[1]}&source_long=${origin.feature.geometry.coordinates[0]}&target_lat=${destination.feature.geometry.coordinates[1]}&target_long=${destination.feature.geometry.coordinates[0]}`)
+        fetch(`http://127.0.0.1:8000/${route}/?source_lat=${origin.feature.geometry.coordinates[1]}&source_long=${origin.feature.geometry.coordinates[0]}&target_lat=${destination.feature.geometry.coordinates[1]}&target_long=${destination.feature.geometry.coordinates[0]}`)
             .then(response => response.json()).then(data => {
+                console.log(data)
                 map.setLayoutProperty('route', 'visibility', 'visible');
-                map.getSource('route').setData({
-                    'type': 'Feature',
-                    'properties': {},
-                    'geometry': {
-                        'type': 'LineString',
-                        'coordinates': data.map(point => [point.x, point.y])
-                        //[origin.feature.geometry.coordinates, destination.feature.geometry.coordinates]
+                if (algorithm == "A*") {
+                    map.getSource('route').setData({
+                        'type': 'Feature',
+                        'properties': {
+                            'color': '#888'
+                        },
+                        'geometry': {
+                            'type': 'LineString',
+                            'coordinates': data.map(point => [point.x, point.y])
+                        }
+                    })
+                } else {
+                    let source = {
+                        'type': 'FeatureCollection',
+                        'features': []
                     }
-                })
-            });
+                    let color = rgb2hsl(1, 0, 0)
+                    for (let line of data) {
+                        source.features.push({
+                            'type': 'Feature',
+                            'properties': {
+                                'color': rgbToHex(...hsv2rgb(...color).map(value => Math.floor(value * 255)))
+                            },
+                            'geometry': {
+                                'type': 'LineString',
+                                'coordinates': line.map(point => [point.x, point.y])
+                            }
+                        });
+                        color[0] = color[0] + 60 % 360
+                    }
+                    map.getSource('route').setData(source)
+                }
 
-    };
+            });
+    }
 }
 //when destination/origin updated on input UI, check to see if route can be formed
 directionsControl.on('origin', (location) => { origin = location; })
@@ -109,3 +163,15 @@ directionsControl.on('route', (route) => { console.log(route) });
 
 //add direction controls
 map.addControl(directionsControl, 'top-left');
+function hsv2rgb(h, s, v) {
+    let f = (n, k = (n + h / 60) % 6) => v - v * s * Math.max(Math.min(k, 4 - k, 1), 0);
+    return [f(5), f(3), f(1)];
+}
+function rgb2hsl(r, g, b) {
+    let a = Math.max(r, g, b), n = a - Math.min(r, g, b), f = (1 - Math.abs(a + a - n - 1));
+    let h = n && ((a == r) ? (g - b) / n : ((a == g) ? 2 + (b - r) / n : 4 + (r - g) / n));
+    return [60 * (h < 0 ? h + 6 : h), f ? n / f : 0, (a + a - n) / 2];
+}
+function rgbToHex(r, g, b) {
+    return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+}
