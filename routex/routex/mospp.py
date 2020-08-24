@@ -73,11 +73,13 @@ def mospp(
                     # no labels for this vertex yet, add the new label
                     vertex_dict[out_edge.target()] = [new_label]
                     heapq.heappush(labels, new_label)
+    print(target)
+    print(source)
     # begin backtracking
     routes = []
     route = []
-    route.append(target)
     for label in vertex_dict[target]:
+        route.append(target)
         v = target
         # keep track of our current label
         label_tracker = label
@@ -85,6 +87,8 @@ def mospp(
             label_tracker = label_tracker.pred
             v = label_tracker.assoc
             route.append(v)
+        route.reverse()
         routes.append(route)
         route = []
+    print([[int(r) for r in route] for route in routes])
     return routes
