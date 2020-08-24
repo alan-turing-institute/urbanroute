@@ -5,7 +5,8 @@ from graph_tool.all import Vertex, EdgePropertyMap
 
 
 class Label:
-    """The label class, contains the label predecessor of the label, resource costs, and the associated vertex"""
+    """The label class, contains the label predecessor of the label,
+    resource costs, and the associated vertex"""
 
     def __init__(self, pred, resource: np.ndarray, assoc: Vertex):
         # predecessor label
@@ -73,8 +74,6 @@ def mospp(
                     # no labels for this vertex yet, add the new label
                     vertex_dict[out_edge.target()] = [new_label]
                     heapq.heappush(labels, new_label)
-    print(target)
-    print(source)
     # begin backtracking
     routes = []
     route = []
@@ -90,5 +89,4 @@ def mospp(
         route.reverse()
         routes.append(route)
         route = []
-    print([[int(r) for r in route] for route in routes])
     return routes
