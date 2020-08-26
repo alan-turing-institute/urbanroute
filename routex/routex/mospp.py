@@ -1,7 +1,12 @@
 """Perform MOSPP on the graph"""
 import heapq
 import numpy as np
+import math
 from graph_tool.all import Vertex, EdgePropertyMap
+
+
+def dominate(resource, other):
+    return np.all(np.less_equal(resource, other)) and np.any(np.less(resource, other))
 
 
 class Label:
@@ -23,22 +28,66 @@ class Label:
 
     def dominate(self, other):
         """Returns true iff this label dominates the other provided label"""
-        return np.all(np.less_equal(self.resource, other.resource)) and np.any(
-            np.less(self.resource, other.resource)
-        )
+        return dominate(self.resource, other.resource)
+
+
+def all_labels_stopping(labels, vertex_dict, target, minimum_resource, rerun_stopping):
+    """Stop only after all labels have been examined"""
+    return len(labels) == 0
+
+
+def strict_a_star_stopping(labels):
+    """Stopping condition inspired by A*, runs for every label removed, does full
+    dominance checking with the destination labels"""
+    pass
+
+
+def lazy_a_star_stopping(labels, vertex_dict, target, minimum_resource, rerun_stopping):
+    """The stopping condition inspired by A*, runs only occasionally, see
+    Speeding up Martin's algorithm for multiple objective shortest path problems,
+    2012, Demeyer et al"""
+    if rerun_stopping and target in vertex_dict:
+        for label in vertex_dict[target]:
+            if dominate(label.resource, minimum_resource):
+                return True
+    return False
 
 
 def mospp(
-    source: Vertex, target: Vertex, cost_1: EdgePropertyMap, cost_2: EdgePropertyMap
+    source: Vertex,
+    target: Vertex,
+    cost_1: EdgePropertyMap,
+    cost_2: EdgePropertyMap,
+    stopping_condition=lazy_a_star_stopping,
 ):
     """Run MOSPP on graph. Returns list of routes, each route being a list of vertices"""
     labels = [Label(None, np.array([0, 0]), source)]
     # labels associated with each vertex
     vertex_dict = {}
-    while len(labels) != 0:
+    rerun_stopping = False
+    minimum_resource = [math.inf, math.inf]
+
+    while not stopping_condition(
+        labels, vertex_dict, target, minimum_resource, rerun_stopping
+    ):
+        rerun_stopping = False
         # pick lexicographically smallest label if it isn't
         # already excluded
         current = heapq.heappop(labels)
+        # we could be removing the element responsible for the current minimum
+        if (
+            current.resource[0] == minimum_resource[0]
+            or current.resource[1] == minimum_resource[1]
+        ):
+            rerun_stopping = True
+            minimum_resource[0] = math.inf
+            minimum_resource[1] = math.inf
+            for x in labels:
+                if x.resource[0] < minimum_resource[0]:
+                    minimum_resource[0] = x.resource[0]
+                if x.resource[1] < minimum_resource[1]:
+                    minimum_resource[1] = x.resource[1]
+
         if not current.removed:
             for out_edge in current.assoc.out_edges():
                 # create the new label with updated resource values
@@ -60,6 +109,10 @@ def mospp(
                         # keep the new label as it is not dominated
                         vertex_dict[out_edge.target()].append(new_label)
                         heapq.heappush(labels, new_label)
+                        if new_label.resource[0] < minimum_resource[0]:
+                            minimum_resource[0] = new_label.resource[0]
+                        if new_label.resource[1] < minimum_resource[1]:
+                            minimum_resource[1] = new_label.resource[1]
                         # remove labels that the new label dominates from the heap
                         for vertex_label in vertex_dict[out_edge.target()]:
                             if new_label.dominate(vertex_label):
@@ -74,6 +127,12 @@ def mospp(
                     # no labels for this vertex yet, add the new label
                     vertex_dict[out_edge.target()] = [new_label]
                     heapq.heappush(labels, new_label)
+                    if new_label.resource[0] < minimum_resource[0]:
+                        minimum_resource[0] = new_label.resource[0]
+                        rerun_stopping = True
+                    if new_label.resource[1] < minimum_resource[1]:
+                        minimum_resource[1] = new_label.resource[1]
+                        rerun_stopping = True
     # begin backtracking
     routes = []
     route = []
