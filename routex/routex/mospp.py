@@ -24,11 +24,14 @@ class Label:
         self.removed = False
 
     def __gt__(self, other):
-        return self.resource > other.resource
+        return self.resource[0] > other.resource[0]
 
     def dominate(self, other):
         """Returns true iff this label dominates the other provided label"""
         return dominate(self.resource, other.resource)
+
+    def __str__(self):
+        return str((str(self.resource), str(int(self.assoc))))
 
 
 def all_labels_stopping(labels, vertex_dict, target, minimum_resource, rerun_stopping):
@@ -61,11 +64,11 @@ def mospp(
     stopping_condition=lazy_a_star_stopping,
 ):
     """Run MOSPP on graph. Returns list of routes, each route being a list of vertices"""
-    labels = [Label(None, np.array([0, 0]), source)]
+    labels = [Label(None, np.single([0, 0]), source)]
     # labels associated with each vertex
     vertex_dict = {}
     rerun_stopping = False
-    minimum_resource = [math.inf, math.inf]
+    minimum_resource = np.array([0.0, 0.0])
 
     while not stopping_condition(
         labels, vertex_dict, target, minimum_resource, rerun_stopping
@@ -75,19 +78,15 @@ def mospp(
         # already excluded
         current = heapq.heappop(labels)
         # we could be removing the element responsible for the current minimum
-        if (
-            current.resource[0] == minimum_resource[0]
-            or current.resource[1] == minimum_resource[1]
+        if np.isclose(current.resource[0], minimum_resource[0], 0.5) or np.isclose(
+            current.resource[1], minimum_resource[1], 0.5
         ):
             rerun_stopping = True
             minimum_resource[0] = math.inf
             minimum_resource[1] = math.inf
-            for x in labels:
-                if x.resource[0] < minimum_resource[0]:
-                    minimum_resource[0] = x.resource[0]
-                if x.resource[1] < minimum_resource[1]:
-                    minimum_resource[1] = x.resource[1]
-
+            resource_list = np.array([label.resource for label in labels])
+            if np.size(resource_list) > 0:
+                minimum_resource = np.min(resource_list, axis=0)
         if not current.removed:
             for out_edge in current.assoc.out_edges():
                 # create the new label with updated resource values
@@ -102,10 +101,15 @@ def mospp(
                 # check if other labels exist for this vertex
                 if out_edge.target() in vertex_dict:
                     # check if the new label is dominated
-                    for vertex_label in vertex_dict[out_edge.target()]:
-                        if vertex_label.dominate(new_label):
-                            break
-                    else:
+                    resource_list = np.single(
+                        [label.resource for label in vertex_dict[out_edge.target()]]
+                    )
+                    if not np.any(
+                        np.logical_and(
+                            (resource_list < new_label.resource).any(axis=1),
+                            (resource_list <= new_label.resource).all(axis=1),
+                        )
+                    ):
                         # keep the new label as it is not dominated
                         vertex_dict[out_edge.target()].append(new_label)
                         heapq.heappush(labels, new_label)
@@ -129,10 +133,8 @@ def mospp(
                     heapq.heappush(labels, new_label)
                     if new_label.resource[0] < minimum_resource[0]:
                         minimum_resource[0] = new_label.resource[0]
-                        rerun_stopping = True
                     if new_label.resource[1] < minimum_resource[1]:
                         minimum_resource[1] = new_label.resource[1]
-                        rerun_stopping = True
     # begin backtracking
     routes = []
     route = []

@@ -9,6 +9,38 @@ import math
 from graph_tool.all import Vertex, EdgePropertyMap
 
 
+class BidirectionalPath:
+    def __init__(
+        self,
+        forwardLabel: Label,
+        backwardLabel: Label,
+        source: Vertex,
+        destination: Vertex,
+    ):
+        self.forwardLabel = forwardLabel
+        self.backwardLabel = backwardLabel
+        self.resource = np.array(forwardLabel.resource) + np.array(
+            backwardLabel.resource
+        )
+        labelTracker = backwardLabel
+        v = backwardLabel.assoc
+        backpath = [v]
+        while v != destination:
+            labelTracker = labelTracker.pred
+            v = labelTracker.assoc
+            backpath.append(v)
+
+        labelTracker = forwardLabel
+        v = forwardLabel.assoc
+        forwardpath = []
+        while v != source:
+            labelTracker = labelTracker.pred
+            v = labelTracker.assoc
+            forwardpath.append(v)
+        forwardpath.reverse()
+        self.path = forwardpath + backpath
+
+
 def biobjective_lazy_a_star_stopping(
     minimum_resource_forward, minimum_resource_backwards, results, rerun_stopping
 ):
@@ -21,10 +53,6 @@ def biobjective_lazy_a_star_stopping(
             ):
                 return True
     return False
-
-
-def combine(label, otherDict, results):
-    pass
 
 
 def biobjective_mospp(
@@ -42,8 +70,8 @@ def biobjective_mospp(
     vertex_dict_forward = {source: [labelsForward[0]]}
     vertex_dict_backwards = {target: [labelsBackward[0]]}
     rerun_stopping = False
-    minimum_resource_forward = [math.inf, math.inf]
-    minimum_resource_backwards = [math.inf, math.inf]
+    minimum_resource_forward = [0, 0]
+    minimum_resource_backwards = [0, 0]
     results = []
     while not stopping_condition(
         minimum_resource_forward, minimum_resource_backwards, results, rerun_stopping
@@ -54,6 +82,7 @@ def biobjective_mospp(
         current = None
         if direction == "forward":
             current = heapq.heappop(labelsForward)
+            print(current, direction)
             if (
                 current.resource[0] == minimum_resource_forward[0]
                 or current.resource[1] == minimum_resource_forward[1]
@@ -68,6 +97,7 @@ def biobjective_mospp(
                         minimum_resource_forward[1] = x.resource[1]
         else:
             current = heapq.heappop(labelsBackward)
+            print(current, direction)
             if (
                 current.resource[0] == minimum_resource_backwards[0]
                 or current.resource[1] == minimum_resource_backwards[1]
@@ -83,17 +113,17 @@ def biobjective_mospp(
         # we could be removing the element responsible for the current minimum
 
         if not current.removed:
-            for out_edge in current.assoc.out_edges():
-                # create the new label with updated resource values
-                new_label = Label(
-                    current,
-                    [
-                        current.resource[0] + cost_1[out_edge],
-                        current.resource[1] + cost_2[out_edge],
-                    ],
-                    out_edge.target(),
-                )
-                if direction == "forward":
+            if direction == "forward":
+                for out_edge in current.assoc.out_edges():
+                    # create the new label with updated resource values
+                    new_label = Label(
+                        current,
+                        [
+                            current.resource[0] + cost_1[out_edge],
+                            current.resource[1] + cost_2[out_edge],
+                        ],
+                        out_edge.target(),
+                    )
                     # check if other labels exist for this vertex
                     if out_edge.target() in vertex_dict_forward:
                         # check if the new label is dominated
@@ -120,6 +150,13 @@ def biobjective_mospp(
                                 ]
                                 if not vertex_label.removed
                             ]
+                            if out_edge.target() in vertex_dict_backwards:
+                                for label in vertex_dict_backwards[out_edge.target()]:
+                                    results.append(
+                                        BidirectionalPath(
+                                            new_label, label, source, target
+                                        )
+                                    )
                     else:
                         # no labels for this vertex yet, add the new label
                         vertex_dict_forward[out_edge.target()] = [new_label]
@@ -130,39 +167,59 @@ def biobjective_mospp(
                         if new_label.resource[1] < minimum_resource_forward[1]:
                             minimum_resource_forward[1] = new_label.resource[1]
                             rerun_stopping = True
-                    direction = "backward"
-                elif direction == "backward":
+                        if out_edge.target() in vertex_dict_backwards:
+                            for label in vertex_dict_backwards[out_edge.target()]:
+                                results.append(
+                                    BidirectionalPath(new_label, label, source, target)
+                                )
+            elif direction == "backward":
+                for in_edge in current.assoc.in_edges():
+                    # create the new label with updated resource values
+                    new_label = Label(
+                        current,
+                        [
+                            current.resource[0] + cost_1[in_edge],
+                            current.resource[1] + cost_2[in_edge],
+                        ],
+                        in_edge.source(),
+                    )
                     # check if other labels exist for this vertex
-                    if out_edge.target() in vertex_dict_forward:
+                    if in_edge.source() in vertex_dict_backwards:
                         # check if the new label is dominated
-                        for vertex_label in vertex_dict_backwards[out_edge.target()]:
+                        for vertex_label in vertex_dict_backwards[in_edge.source()]:
                             if vertex_label.dominate(new_label):
                                 break
                         else:
                             # keep the new label as it is not dominated
-                            vertex_dict_backwards[out_edge.target()].append(new_label)
+                            vertex_dict_backwards[in_edge.source()].append(new_label)
                             heapq.heappush(labelsBackward, new_label)
                             if new_label.resource[0] < minimum_resource_backwards[0]:
                                 minimum_resource_backwards[0] = new_label.resource[0]
                             if new_label.resource[1] < minimum_resource_backwards[1]:
                                 minimum_resource_backwards[1] = new_label.resource[1]
                             # remove labels that the new label dominates from the heap
-                            for vertex_label in vertex_dict_backwards[
-                                out_edge.target()
-                            ]:
+                            for vertex_label in vertex_dict_backwards[in_edge.source()]:
                                 if new_label.dominate(vertex_label):
                                     vertex_label.removed = True
                             # remove such labels from association with their vertex
-                            vertex_dict_backwards[out_edge.target()][:] = [
+                            vertex_dict_backwards[in_edge.source()][:] = [
                                 vertex_label
                                 for vertex_label in vertex_dict_backwards[
-                                    out_edge.target()
+                                    in_edge.source()
                                 ]
                                 if not vertex_label.removed
                             ]
+                            if out_edge.target() in vertex_dict_forward:
+                                if in_edge.source() in vertex_dict_forward:
+                                    for label in vertex_dict_forward[in_edge.source()]:
+                                        results.append(
+                                            BidirectionalPath(
+                                                label, new_label, source, target
+                                            )
+                                        )
                     else:
                         # no labels for this vertex yet, add the new label
-                        vertex_dict_backwards[out_edge.target()] = [new_label]
+                        vertex_dict_backwards[in_edge.source()] = [new_label]
                         heapq.heappush(labelsBackward, new_label)
                         if new_label.resource[0] < minimum_resource_backwards[0]:
                             minimum_resource_backwards[0] = new_label.resource[0]
@@ -170,20 +227,18 @@ def biobjective_mospp(
                         if new_label.resource[1] < minimum_resource_backwards[1]:
                             minimum_resource_backwards[1] = new_label.resource[1]
                             rerun_stopping = True
-                    direction = "forward"
+                        if in_edge.source() in vertex_dict_forward:
+                            for label in vertex_dict_forward[in_edge.source()]:
+                                results.append(
+                                    BidirectionalPath(label, new_label, source, target)
+                                )
+            if direction == "forward":
+                direction = "backward"
+            else:
+                direction = "forward"
     # begin backtracking
     routes = []
-    route = []
     for label in results:
-        route.append(target)
-        v = target
-        # keep track of our current label
-        label_tracker = label
-        while v != source:
-            label_tracker = label_tracker.pred
-            v = label_tracker.assoc
-            route.append(v)
-        route.reverse()
-        routes.append(route)
-        route = []
+        routes.append(label.path)
+    print(routes)
     return routes
