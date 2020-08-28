@@ -2,8 +2,6 @@
 import heapq
 import numpy as np
 import math
-import numba
-from numba import jit
 from graph_tool.all import Vertex, EdgePropertyMap
 
 
@@ -11,16 +9,7 @@ def dominate(resource, other):
     return np.all(np.less_equal(resource, other)) and np.any(np.less(resource, other))
 
 
-def all_labels_stopping(
-    labels, vertex_labels, target, minimum_resource, rerun_stopping
-):
-    """Stop only after all labels have been examined"""
-    return len(labels) == 0
-
-
-def lazy_a_star_stopping(
-    labels, vertex_labels, target, minimum_resource, rerun_stopping
-):
+def stopping_condition(labels, vertex_labels, target, minimum_resource, rerun_stopping):
     """The stopping condition inspired by A*, runs only occasionally, see
     Speeding up Martin's algorithm for multiple objective shortest path problems,
     2012, Demeyer et al"""
@@ -37,17 +26,8 @@ def lazy_a_star_stopping(
     return False
 
 
-@jit(nopython=True)
-def dominateList(first, second):
-    np.any((first < second).all(axis=1))
-
-
 def mospp(
-    source: Vertex,
-    target: Vertex,
-    cost_1: EdgePropertyMap,
-    cost_2: EdgePropertyMap,
-    stopping_condition=lazy_a_star_stopping,
+    source: Vertex, target: Vertex, cost_1: EdgePropertyMap, cost_2: EdgePropertyMap,
 ):
     """Run MOSPP on graph. Returns list of routes, each route being a list of vertices"""
 
@@ -81,8 +61,8 @@ def mospp(
                 # create the new label with updated resource values
                 new_label = (
                     (
-                        current[0][0] + cost_1[out_edge],
-                        current[0][1] + cost_2[out_edge],
+                        current[0][0] + cost_1[out_edge] + 0.001,
+                        current[0][1] + cost_2[out_edge] + 0.001,
                     ),
                     current,
                     out_edge.target(),
@@ -98,7 +78,7 @@ def mospp(
                     if not np.any((resource_list < new_label[0]).all(axis=1)):
                         # remove labels that this new label dominates from the vertex labels
                         remove_list = (resource_list > new_label[0]).all(axis=1)
-                        vertex_labels[out_edge.target()][:] = [
+                        vertex_labels[out_edge.target()] = [
                             value
                             for index, value in enumerate(
                                 vertex_labels[out_edge.target()]

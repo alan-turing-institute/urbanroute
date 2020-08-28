@@ -1,7 +1,7 @@
 import pytest
 import json
 from graph_tool.all import load_graph, Graph
-from routex import mospp, all_labels_stopping, lazy_a_star_stopping, biobjective_mospp
+from routex import mospp
 
 with open("./tests/test_routex/large_solution.json", "r") as read_file:
     data = json.load(read_file)
@@ -69,7 +69,7 @@ def test_biobjective_mospp():
     target = 3043
     # lazy stop should give same result as stopping only when all labels are done
     assert mospp(
-        G.vertex(source), G.vertex(target), float_length, pollution, all_labels_stopping
+        G.vertex(source), G.vertex(target), float_length, pollution,
     ) == biobjective_mospp(G.vertex(source), G.vertex(target), float_length, pollution)
 
 

@@ -135,7 +135,8 @@ def return_mospp(
     inside[source] = True
     inside[target] = True
     G.set_vertex_filter(inside)
-
+    print(source)
+    print(target)
     routes = mospp(G.vertex(source), G.vertex(target), float_length, pollution)
     return [[{"x": x[r], "y": y[r]} for r in route] for route in routes]
 
