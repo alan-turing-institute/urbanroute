@@ -2,6 +2,8 @@
 import heapq
 import numpy as np
 import math
+import numba
+from numba import jit
 from graph_tool.all import Vertex, EdgePropertyMap
 
 
@@ -9,51 +11,35 @@ def dominate(resource, other):
     return np.all(np.less_equal(resource, other)) and np.any(np.less(resource, other))
 
 
-class Label:
-    """The label class, contains the label predecessor of the label,
-    resource costs, and the associated vertex"""
-
-    def __init__(self, pred, resource: np.ndarray, assoc: Vertex):
-        # predecessor label
-        self.pred = pred
-        # array of resource values
-        self.resource = resource
-        # associated vertex
-        self.assoc = assoc
-        # true if it has been excluded
-        self.removed = False
-
-    def __gt__(self, other):
-        return self.resource[0] > other.resource[0]
-
-    def dominate(self, other):
-        """Returns true iff this label dominates the other provided label"""
-        return dominate(self.resource, other.resource)
-
-    def __str__(self):
-        return str((str(self.resource), str(int(self.assoc))))
-
-
-def all_labels_stopping(labels, vertex_dict, target, minimum_resource, rerun_stopping):
+def all_labels_stopping(
+    labels, vertex_labels, target, minimum_resource, rerun_stopping
+):
     """Stop only after all labels have been examined"""
     return len(labels) == 0
 
 
-def strict_a_star_stopping(labels):
-    """Stopping condition inspired by A*, runs for every label removed, does full
-    dominance checking with the destination labels"""
-    pass
-
-
-def lazy_a_star_stopping(labels, vertex_dict, target, minimum_resource, rerun_stopping):
+def lazy_a_star_stopping(
+    labels, vertex_labels, target, minimum_resource, rerun_stopping
+):
     """The stopping condition inspired by A*, runs only occasionally, see
     Speeding up Martin's algorithm for multiple objective shortest path problems,
     2012, Demeyer et al"""
-    if rerun_stopping and target in vertex_dict:
-        for label in vertex_dict[target]:
-            if dominate(label.resource, minimum_resource):
+    if rerun_stopping and target in vertex_labels:
+        """if not np.any(
+                        np.logical_and(
+                            (resource_list < minimum_resource).any(axis=1),
+                            (resource_list <= new_label[0]).all(axis=1),
+                        )
+                    )"""
+        for label in vertex_labels[target]:
+            if dominate(label[0], minimum_resource):
                 return True
     return False
+
+
+@jit(nopython=True)
+def dominateList(first, second):
+    np.any((first < second).all(axis=1))
 
 
 def mospp(
@@ -64,88 +50,80 @@ def mospp(
     stopping_condition=lazy_a_star_stopping,
 ):
     """Run MOSPP on graph. Returns list of routes, each route being a list of vertices"""
-    labels = [Label(None, np.single([0, 0]), source)]
-    # labels associated with each vertex
-    vertex_dict = {}
-    rerun_stopping = False
-    minimum_resource = np.array([0.0, 0.0])
 
-    while not stopping_condition(
-        labels, vertex_dict, target, minimum_resource, rerun_stopping
+    labels = [((0, 0), None, source)]
+    skip = 1000
+    # labels associated with each vertex
+    vertex_labels = {source: [labels[0]]}
+    rerun_stopping = False
+    minimum_resource = [0.0, 0.0]
+
+    while labels and not stopping_condition(
+        labels, vertex_labels, target, minimum_resource, rerun_stopping
     ):
         rerun_stopping = False
         # pick lexicographically smallest label if it isn't
         # already excluded
         current = heapq.heappop(labels)
         # we could be removing the element responsible for the current minimum
-        if np.isclose(current.resource[0], minimum_resource[0], 0.5) or np.isclose(
-            current.resource[1], minimum_resource[1], 0.5
-        ):
+        skip -= 1
+        if skip == 0:
             rerun_stopping = True
             minimum_resource[0] = math.inf
             minimum_resource[1] = math.inf
-            resource_list = np.array([label.resource for label in labels])
+            resource_list = np.array([label[0] for label in labels])
             if np.size(resource_list) > 0:
                 minimum_resource = np.min(resource_list, axis=0)
-        if not current.removed:
-            for out_edge in current.assoc.out_edges():
+            skip = 1000
+        # don't expand dominated labels
+        if current[2] != target and current in vertex_labels.get(current[2], []):
+            for out_edge in current[2].out_edges():
                 # create the new label with updated resource values
-                new_label = Label(
+                new_label = (
+                    (
+                        current[0][0] + cost_1[out_edge],
+                        current[0][1] + cost_2[out_edge],
+                    ),
                     current,
-                    [
-                        current.resource[0] + cost_1[out_edge],
-                        current.resource[1] + cost_2[out_edge],
-                    ],
                     out_edge.target(),
                 )
                 # check if other labels exist for this vertex
-                if out_edge.target() in vertex_dict:
+                if out_edge.target() in vertex_labels:
                     # check if the new label is dominated
+                    # list of resources of all the labels of the vertex
                     resource_list = np.single(
-                        [label.resource for label in vertex_dict[out_edge.target()]]
+                        [label[0] for label in vertex_labels[out_edge.target()]]
                     )
-                    if not np.any(
-                        np.logical_and(
-                            (resource_list < new_label.resource).any(axis=1),
-                            (resource_list <= new_label.resource).all(axis=1),
-                        )
-                    ):
-                        # keep the new label as it is not dominated
-                        vertex_dict[out_edge.target()].append(new_label)
-                        heapq.heappush(labels, new_label)
-                        if new_label.resource[0] < minimum_resource[0]:
-                            minimum_resource[0] = new_label.resource[0]
-                        if new_label.resource[1] < minimum_resource[1]:
-                            minimum_resource[1] = new_label.resource[1]
-                        # remove labels that the new label dominates from the heap
-                        for vertex_label in vertex_dict[out_edge.target()]:
-                            if new_label.dominate(vertex_label):
-                                vertex_label.removed = True
-                        # remove such labels from association with their vertex
-                        vertex_dict[out_edge.target()][:] = [
-                            vertex_label
-                            for vertex_label in vertex_dict[out_edge.target()]
-                            if not vertex_label.removed
+                    # check domination
+                    if not np.any((resource_list < new_label[0]).all(axis=1)):
+                        # remove labels that this new label dominates from the vertex labels
+                        remove_list = (resource_list > new_label[0]).all(axis=1)
+                        vertex_labels[out_edge.target()][:] = [
+                            value
+                            for index, value in enumerate(
+                                vertex_labels[out_edge.target()]
+                            )
+                            if not remove_list[index]
                         ]
+                        # add the new label as it is not dominated
+                        vertex_labels[out_edge.target()].append(new_label)
+                        heapq.heappush(labels, new_label)
                 else:
                     # no labels for this vertex yet, add the new label
-                    vertex_dict[out_edge.target()] = [new_label]
+                    vertex_labels[out_edge.target()] = [new_label]
                     heapq.heappush(labels, new_label)
-                    if new_label.resource[0] < minimum_resource[0]:
-                        minimum_resource[0] = new_label.resource[0]
-                    if new_label.resource[1] < minimum_resource[1]:
-                        minimum_resource[1] = new_label.resource[1]
+
     # begin backtracking
     routes = []
     route = []
-    for label in vertex_dict[target]:
+    for label in vertex_labels[target]:
         route.append(target)
         v = target
         # keep track of our current label
         label_tracker = label
         while v != source:
-            label_tracker = label_tracker.pred
-            v = label_tracker.assoc
+            label_tracker = label_tracker[1]
+            v = label_tracker[2]
             route.append(v)
         route.reverse()
         routes.append(route)

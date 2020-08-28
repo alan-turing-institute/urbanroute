@@ -1,10 +1,8 @@
-import pytest
 import json
 from graph_tool.all import load_graph, Graph
-from routex import mospp, all_labels_stopping, lazy_a_star_stopping, biobjective_mospp
+from routex import mospp, biobjective_mospp
 
 G = load_graph("../../tests/test_graphs/Trafalgar.gt")
-G.list_properties()
 pos = G.new_vertex_property("vector<double>")
 float_length = G.new_edge_property("double")
 float_x = G.new_vertex_property("double")
