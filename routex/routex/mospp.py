@@ -26,29 +26,27 @@ def stopping_condition(labels, vertex_labels, target, minimum_resource, rerun_st
     return False
 
 
-def add_label(out_edge, vertex_labels, labels, new_label):
+def add_label(target_vertex, vertex_labels, labels, new_label):
     # check if other labels exist for this vertex
-    if out_edge.target() in vertex_labels:
+    if target_vertex in vertex_labels:
         # check if the new label is dominated
         # list of resources of all the labels of the vertex
-        resource_list = np.single(
-            [label[0] for label in vertex_labels[out_edge.target()]]
-        )
+        resource_list = np.single([label[0] for label in vertex_labels[target_vertex]])
         # check domination
         if not np.any((resource_list < new_label[0]).all(axis=1)):
             # remove labels that this new label dominates from the vertex labels
             remove_list = (resource_list > new_label[0]).all(axis=1)
-            vertex_labels[out_edge.target()] = [
+            vertex_labels[target_vertex] = [
                 value
-                for index, value in enumerate(vertex_labels[out_edge.target()])
+                for index, value in enumerate(vertex_labels[target_vertex])
                 if not remove_list[index]
             ]
             # add the new label as it is not dominated
-            vertex_labels[out_edge.target()].append(new_label)
+            vertex_labels[target_vertex].append(new_label)
             heapq.heappush(labels, new_label)
     else:
         # no labels for this vertex yet, add the new label
-        vertex_labels[out_edge.target()] = [new_label]
+        vertex_labels[target_vertex] = [new_label]
         heapq.heappush(labels, new_label)
 
 
@@ -62,7 +60,7 @@ def mospp(
     # labels associated with each vertex
     vertex_labels = {source: [labels[0]]}
     rerun_stopping = False
-    minimum_resource = [0.0, 0.0]
+    minimum_resource = [math.inf, math.inf]
 
     while labels and not stopping_condition(
         labels, vertex_labels, target, minimum_resource, rerun_stopping
@@ -75,11 +73,12 @@ def mospp(
         skip -= 1
         if skip == 0:
             rerun_stopping = True
-            minimum_resource[0] = math.inf
-            minimum_resource[1] = math.inf
             resource_list = np.array([label[0] for label in labels])
             if np.size(resource_list) > 0:
                 minimum_resource = np.min(resource_list, axis=0)
+            else:
+                minimum_resource[0] = math.inf
+                minimum_resource[1] = math.inf
             skip = 1000
         # don't expand dominated labels
         if current[2] != target and current in vertex_labels.get(current[2], []):
@@ -93,7 +92,7 @@ def mospp(
                     current,
                     out_edge.target(),
                 )
-                add_label(out_edge, vertex_labels, labels, new_label)
+                add_label(out_edge.target(), vertex_labels, labels, new_label)
 
     # begin backtracking
     routes = []
