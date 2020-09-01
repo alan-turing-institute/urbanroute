@@ -1,58 +1,16 @@
+"""The biobjective label setting algorithm for MOSPP, see
+Speeding up Martin's algorithm for multiple objective shortest path problems, 2012, Demeyer et al"""
+from .mospp import *
+
 """Perform MOSPP on the graph"""
 import heapq
 import numpy as np
 import math
 from graph_tool.all import Vertex, EdgePropertyMap
+from routex import *
 
 
-def dominate(resource, other):
-    return np.all(np.less_equal(resource, other)) and np.any(np.less(resource, other))
-
-
-def stopping_condition(labels, vertex_labels, target, minimum_resource, rerun_stopping):
-    """The stopping condition inspired by A*, runs only occasionally, see
-    Speeding up Martin's algorithm for multiple objective shortest path problems,
-    2012, Demeyer et al"""
-    if rerun_stopping and target in vertex_labels:
-        """if not np.any(
-                        np.logical_and(
-                            (resource_list < minimum_resource).any(axis=1),
-                            (resource_list <= new_label[0]).all(axis=1),
-                        )
-                    )"""
-        for label in vertex_labels[target]:
-            if dominate(label[0], minimum_resource):
-                return True
-    return False
-
-
-def add_label(out_edge, vertex_labels, labels, new_label):
-    # check if other labels exist for this vertex
-    if out_edge.target() in vertex_labels:
-        # check if the new label is dominated
-        # list of resources of all the labels of the vertex
-        resource_list = np.single(
-            [label[0] for label in vertex_labels[out_edge.target()]]
-        )
-        # check domination
-        if not np.any((resource_list < new_label[0]).all(axis=1)):
-            # remove labels that this new label dominates from the vertex labels
-            remove_list = (resource_list > new_label[0]).all(axis=1)
-            vertex_labels[out_edge.target()] = [
-                value
-                for index, value in enumerate(vertex_labels[out_edge.target()])
-                if not remove_list[index]
-            ]
-            # add the new label as it is not dominated
-            vertex_labels[out_edge.target()].append(new_label)
-            heapq.heappush(labels, new_label)
-    else:
-        # no labels for this vertex yet, add the new label
-        vertex_labels[out_edge.target()] = [new_label]
-        heapq.heappush(labels, new_label)
-
-
-def mospp(
+def bidirectional_mospp(
     source: Vertex, target: Vertex, cost_1: EdgePropertyMap, cost_2: EdgePropertyMap,
 ):
     """Run MOSPP on graph. Returns list of routes, each route being a list of vertices"""

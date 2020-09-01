@@ -1,6 +1,6 @@
 import json
 from graph_tool.all import load_graph, Graph
-from routex import mospp, biobjective_mospp
+from routex import mospp, bidirectional_mospp
 
 G = load_graph("../../tests/test_graphs/Trafalgar.gt")
 pos = G.new_vertex_property("vector<double>")
