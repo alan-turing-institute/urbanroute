@@ -9,7 +9,7 @@ from fastapi import FastAPI
 from graph_tool.all import load_graph, EdgePropertyMap
 from haversine import haversine
 from cleanair.loggers import get_logger
-from routex import astar, mospp
+from routex import astar, mospp, bidirectional_mospp
 from urbanroute.geospatial import (
     ellipse_bounding_box,
     coord_match,
@@ -137,7 +137,9 @@ def return_mospp(
     G.set_vertex_filter(inside)
     print(source)
     print(target)
-    routes = mospp(G.vertex(source), G.vertex(target), float_length, pollution)
+    routes = bidirectional_mospp(
+        G.vertex(source), G.vertex(target), float_length, pollution
+    )
     return [[{"x": x[r], "y": y[r]} for r in route] for route in routes]
 
 

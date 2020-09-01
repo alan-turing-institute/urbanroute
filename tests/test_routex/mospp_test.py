@@ -68,10 +68,10 @@ def test_bidirectional_mospp():
     source = 253
     target = 3043
     # lazy stop should give same result as stopping only when all labels are done
-    assert mospp(
-        G.vertex(source), G.vertex(target), float_length, pollution,
-    ) == bidirectional_mospp(
-        G.vertex(source), G.vertex(target), float_length, pollution
+    assert len(
+        mospp(G.vertex(source), G.vertex(target), float_length, pollution,)
+    ) == len(
+        bidirectional_mospp(G.vertex(source), G.vertex(target), float_length, pollution)
     )
 
 

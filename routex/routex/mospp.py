@@ -44,10 +44,13 @@ def add_label(target_vertex, vertex_labels, labels, new_label):
             # add the new label as it is not dominated
             vertex_labels[target_vertex].append(new_label)
             heapq.heappush(labels, new_label)
+            return True
     else:
         # no labels for this vertex yet, add the new label
         vertex_labels[target_vertex] = [new_label]
         heapq.heappush(labels, new_label)
+        return True
+    return False
 
 
 def mospp(

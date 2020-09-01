@@ -16,6 +16,27 @@ def stopping_condition_bidirectional(
     pass
 
 
+def construct_path(forwards_label, backwards_label, source, target):
+    forward_section = []
+    label_tracker = forwards_label
+    v = label_tracker[2]
+    while v != source:
+        forward_section.append(v)
+        label_tracker = label_tracker[1]
+        v = label_tracker[2]
+    forward_section.append(source)
+    backward_section = []
+    label_tracker = backwards_label
+    v = label_tracker[2]
+    while v != target:
+        backward_section.append(v)
+        label_tracker = label_tracker[1]
+        v = label_tracker[2]
+    backward_section.append(target)
+    forward_section.reverse()
+    return forward_section + backward_section
+
+
 def bidirectional_mospp(
     source: Vertex, target: Vertex, cost_1: EdgePropertyMap, cost_2: EdgePropertyMap,
 ):
@@ -31,7 +52,7 @@ def bidirectional_mospp(
     direction = "forwards"
     minimum_resource_forwards = [math.inf, math.inf]
     minimum_resource_backwards = [math.inf, math.inf]
-    resulting_paths = []
+    resulting_paths = {}
     while (
         labels_forwards and labels_backwards
     ) and not stopping_condition_bidirectional(
@@ -53,7 +74,9 @@ def bidirectional_mospp(
             # already excluded
             current = heapq.heappop(labels_forwards)
             # don't expand dominated labels
-            if current[2] != target and current in vertex_labels_forwards.get(
+            if current[
+                2
+            ] not in resulting_paths and current in vertex_labels_forwards.get(
                 current[2], []
             ):
                 for out_edge in current[2].out_edges():
@@ -66,19 +89,27 @@ def bidirectional_mospp(
                         current,
                         out_edge.target(),
                     )
-                    add_label(
+                    added = add_label(
                         out_edge.target(),
                         vertex_labels_forwards,
                         labels_forwards,
                         new_label,
                     )
+                    if added and out_edge.target() in vertex_labels_backwards:
+                        resulting_paths[out_edge.target()] = []
+                        for label in vertex_labels_backwards[out_edge.target()]:
+                            resulting_paths[out_edge.target()].append(
+                                construct_path(new_label, label, source, target,)
+                            )
             direction = "backwards"
         if direction == "backwards":
             # pick lexicographically smallest label if it isn't
             # already excluded
             current = heapq.heappop(labels_backwards)
             # don't expand dominated labels
-            if current[2] != source and current in vertex_labels_backwards.get(
+            if current[
+                2
+            ] not in resulting_paths and current in vertex_labels_backwards.get(
                 current[2], []
             ):
                 for in_edge in current[2].in_edges():
@@ -91,10 +122,25 @@ def bidirectional_mospp(
                         current,
                         in_edge.source(),
                     )
-                    add_label(
+                    added = add_label(
                         in_edge.source(),
                         vertex_labels_backwards,
                         labels_backwards,
                         new_label,
                     )
+                    if added and in_edge.source() in vertex_labels_forwards:
+                        resulting_paths[in_edge.source()] = []
+                        for label in vertex_labels_forwards[in_edge.source()]:
+                            resulting_paths[in_edge.source()].append(
+                                construct_path(label, new_label, source, target,)
+                            )
             direction = "forwards"
+    routes = []
+    route = []
+    for _, value in resulting_paths.items():
+        for x in value:
+            route = []
+            for y in x:
+                route.append(int(y))
+            routes.append(route)
+    return routes
