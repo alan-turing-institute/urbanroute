@@ -1,6 +1,6 @@
-import json
-from graph_tool.all import load_graph, Graph
-from routex import mospp, bidirectional_mospp
+"""Test case useful for benchmarking bidirectional mospp performance"""
+from graph_tool.all import load_graph
+from routex import bidirectional_mospp
 
 G = load_graph("../../tests/test_graphs/Trafalgar.gt")
 pos = G.new_vertex_property("vector<double>")
@@ -26,4 +26,4 @@ for e in G.edges():
 source = 253
 target = 3043
 # lazy stop should give same result as stopping only when all labels are done
-mospp(G.vertex(source), G.vertex(target), float_length, pollution)
+bidirectional_mospp(G.vertex(source), G.vertex(target), float_length, pollution)

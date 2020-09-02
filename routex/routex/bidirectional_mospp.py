@@ -1,13 +1,11 @@
-"""The biobjective label setting algorithm for MOSPP, see
-Speeding up Martin's algorithm for multiple objective shortest path problems, 2012, Demeyer et al"""
-from .mospp import *
-
-"""Perform MOSPP on the graph"""
 import heapq
-import numpy as np
 import math
 from graph_tool.all import Vertex, EdgePropertyMap
-from routex import add_label
+from .mospp import add_label
+
+"""The biobjective label setting algorithm for MOSPP, see
+Speeding up Martin's algorithm for multiple objective shortest path problems, 2012, Demeyer et al"""
+"""Perform MOSPP on the graph"""
 
 
 def stopping_condition_bidirectional(
@@ -17,28 +15,31 @@ def stopping_condition_bidirectional(
 
 
 def construct_path(forwards_label, backwards_label, source, target):
+    # create the forwards path
     forward_section = []
     label_tracker = forwards_label
     v = label_tracker[2]
     while v != source:
-        forward_section.append(v)
+        forward_section.append(int(v))
         label_tracker = label_tracker[1]
         v = label_tracker[2]
-    forward_section.append(source)
+    forward_section.append(int(source))
+    # need to reverse forwards path as traversed backwards
+    forward_section.reverse()
+    # create the backwards path
     backward_section = []
     label_tracker = backwards_label
     v = label_tracker[2]
     while v != target:
-        backward_section.append(v)
+        backward_section.append(int(v))
         label_tracker = label_tracker[1]
         v = label_tracker[2]
-    backward_section.append(target)
-    forward_section.reverse()
+    backward_section.append(int(target))
     return forward_section + backward_section
 
 
 def bidirectional_mospp(
-    source: Vertex, target: Vertex, cost_1: EdgePropertyMap, cost_2: EdgePropertyMap,
+    source: Vertex, target: Vertex, cost_1: EdgePropertyMap, cost_2: EdgePropertyMap
 ):
     """Run MOSPP on graph. Returns list of routes, each route being a list of vertices"""
 
@@ -52,7 +53,7 @@ def bidirectional_mospp(
     direction = "forwards"
     minimum_resource_forwards = [math.inf, math.inf]
     minimum_resource_backwards = [math.inf, math.inf]
-    resulting_paths = {}
+    in_resulting_paths = {}
     while (
         labels_forwards and labels_backwards
     ) and not stopping_condition_bidirectional(
@@ -73,10 +74,10 @@ def bidirectional_mospp(
             # pick lexicographically smallest label if it isn't
             # already excluded
             current = heapq.heappop(labels_forwards)
-            # don't expand dominated labels
+            # don't expand dominated labels or labels in frontier nodes
             if current[
                 2
-            ] not in resulting_paths and current in vertex_labels_forwards.get(
+            ] not in in_resulting_paths and current in vertex_labels_forwards.get(
                 current[2], []
             ):
                 for out_edge in current[2].out_edges():
@@ -95,21 +96,18 @@ def bidirectional_mospp(
                         labels_forwards,
                         new_label,
                     )
+                    # mark this node as a frontier node
                     if added and out_edge.target() in vertex_labels_backwards:
-                        resulting_paths[out_edge.target()] = []
-                        for label in vertex_labels_backwards[out_edge.target()]:
-                            resulting_paths[out_edge.target()].append(
-                                construct_path(new_label, label, source, target,)
-                            )
+                        in_resulting_paths[out_edge.target()] = True
             direction = "backwards"
         if direction == "backwards":
             # pick lexicographically smallest label if it isn't
             # already excluded
             current = heapq.heappop(labels_backwards)
-            # don't expand dominated labels
+            # don't expand dominated labels or labels in frontier nodes
             if current[
                 2
-            ] not in resulting_paths and current in vertex_labels_backwards.get(
+            ] not in in_resulting_paths and current in vertex_labels_backwards.get(
                 current[2], []
             ):
                 for in_edge in current[2].in_edges():
@@ -128,19 +126,19 @@ def bidirectional_mospp(
                         labels_backwards,
                         new_label,
                     )
+                    # mark this node as a frontier node
                     if added and in_edge.source() in vertex_labels_forwards:
-                        resulting_paths[in_edge.source()] = []
-                        for label in vertex_labels_forwards[in_edge.source()]:
-                            resulting_paths[in_edge.source()].append(
-                                construct_path(label, new_label, source, target,)
-                            )
+                        in_resulting_paths[in_edge.source()] = True
             direction = "forwards"
+
+    # performing backtracking
     routes = []
-    route = []
-    for _, value in resulting_paths.items():
-        for x in value:
-            route = []
-            for y in x:
-                route.append(int(y))
-            routes.append(route)
+    # reconstruct path from meeting frontier of both searches
+    for key, _ in in_resulting_paths.items():
+        for forward_label in vertex_labels_forwards[key]:
+            for backward_label in vertex_labels_backwards[key]:
+                # perform reconstruction
+                routes.append(
+                    construct_path(forward_label, backward_label, source, target)
+                )
     return routes

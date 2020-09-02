@@ -69,7 +69,7 @@ def test_bidirectional_mospp():
     target = 3043
     # lazy stop should give same result as stopping only when all labels are done
     assert len(
-        mospp(G.vertex(source), G.vertex(target), float_length, pollution,)
+        mospp(G.vertex(source), G.vertex(target), float_length, pollution)
     ) == len(
         bidirectional_mospp(G.vertex(source), G.vertex(target), float_length, pollution)
     )
@@ -102,4 +102,3 @@ def test_mospp_small():
         [G.vertex_index[r] for r in route]
         for route in mospp(G.vertex(1), G.vertex(4), c1, c2)
     ] == [[1, 4], [1, 2, 4]]
-

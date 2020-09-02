@@ -9,11 +9,11 @@ def dominate(resource, other):
     return np.all(np.less_equal(resource, other)) and np.any(np.less(resource, other))
 
 
-def stopping_condition(labels, vertex_labels, target, minimum_resource, rerun_stopping):
+def stopping_condition(vertex_labels, target, minimum_resource):
     """The stopping condition inspired by A*, runs only occasionally, see
     Speeding up Martin's algorithm for multiple objective shortest path problems,
     2012, Demeyer et al"""
-    if rerun_stopping and target in vertex_labels:
+    if target in vertex_labels:
         """if not np.any(
                         np.logical_and(
                             (resource_list < minimum_resource).any(axis=1),
@@ -54,35 +54,30 @@ def add_label(target_vertex, vertex_labels, labels, new_label):
 
 
 def mospp(
-    source: Vertex, target: Vertex, cost_1: EdgePropertyMap, cost_2: EdgePropertyMap,
+    source: Vertex, target: Vertex, cost_1: EdgePropertyMap, cost_2: EdgePropertyMap
 ):
     """Run MOSPP on graph. Returns list of routes, each route being a list of vertices"""
 
     labels = [((0, 0), None, source)]
-    skip = 1000
     # labels associated with each vertex
     vertex_labels = {source: [labels[0]]}
-    rerun_stopping = False
-    minimum_resource = [math.inf, math.inf]
-
-    while labels and not stopping_condition(
-        labels, vertex_labels, target, minimum_resource, rerun_stopping
-    ):
-        rerun_stopping = False
-        # pick lexicographically smallest label if it isn't
-        # already excluded
-        current = heapq.heappop(labels)
+    skip = 1000
+    while labels:
         # we could be removing the element responsible for the current minimum
         skip -= 1
         if skip == 0:
-            rerun_stopping = True
+            skip = 1000
             resource_list = np.array([label[0] for label in labels])
             if np.size(resource_list) > 0:
                 minimum_resource = np.min(resource_list, axis=0)
             else:
                 minimum_resource[0] = math.inf
                 minimum_resource[1] = math.inf
-            skip = 1000
+            if stopping_condition(vertex_labels, target, minimum_resource):
+                break
+        # pick lexicographically smallest label if it isn't
+        # already excluded
+        current = heapq.heappop(labels)
         # don't expand dominated labels
         if current[2] != target and current in vertex_labels.get(current[2], []):
             for out_edge in current[2].out_edges():
@@ -102,13 +97,11 @@ def mospp(
     route = []
     for label in vertex_labels[target]:
         route.append(target)
-        v = target
         # keep track of our current label
         label_tracker = label
-        while v != source:
+        while label_tracker[2] != source:
             label_tracker = label_tracker[1]
-            v = label_tracker[2]
-            route.append(v)
+            route.append(label_tracker[2])
         route.reverse()
         routes.append(route)
         route = []
