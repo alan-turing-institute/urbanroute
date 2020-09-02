@@ -35,6 +35,8 @@ G.edge_properties["float_length"] = float_length
 pollution = G.new_edge_property("double")
 mean = G.edge_properties["NO2_mean"]
 length = G.edge_properties["length"]
+# used in linear scalarisation
+scalarisation = G.new_edge_property("double")
 x = G.vertex_properties["x"]
 y = G.vertex_properties["y"]
 for v in G.get_vertices():
@@ -57,6 +59,18 @@ remove_paths(G, del_list, pos, length, pollution)
 # set up numpy array of vertices with just the position
 vertices = G.get_vertices(vprops=[float_x, float_y])
 vertices = np.delete(vertices, 0, 1)
+
+
+def distance_heuristic(v, target, pos):
+    """the distance heuristic is the haversine distance, it can also be used for pollution"""
+    return haversine(
+        (pos[v].a[0], pos[v].a[1]), (pos[target].a[0], pos[target].a[1]), unit="m"
+    )
+
+
+def empty_heuristic():
+    """allow using A* without any heuristic"""
+    return 0
 
 
 def return_a_star(
@@ -94,12 +108,38 @@ def return_a_star(
     inside[target] = True
     G.set_vertex_filter(inside)
 
-    def distance_heuristic(v, target, pos):
-        return haversine(
-            (pos[v].a[0], pos[v].a[1]), (pos[target].a[0], pos[target].a[1]), unit="m"
-        )
-
     route = astar(G, source, target, attribute, distance_heuristic, pos)
+    return [{"x": x[r], "y": y[r]} for r in route]
+
+
+def return_linear_scalarisation(
+    source_coord: Tuple[float, float], target_coord: Tuple[float, float], weight: float
+):
+    """Get shortest path where each edge cost is weight * distance + (1-weight) * pollution"""
+    # find vertices in the graph that are close enough to the start/target coordinates
+    # any vertex within the minimum rectangle is sufficient
+    source = coord_match(vertices, source_coord, pos)
+    target = coord_match(vertices, target_coord, pos)
+    # create box around the source and target vertices to eliminate points
+    # that are (probably) too far away to be part of a shortest path
+    box = ellipse_bounding_box(pos[source], pos[target])
+
+    lower_left = np.array([box[3], box[1]])
+    upper_right = np.array([box[2], box[0]])
+    # Euclidean heuristic. If a vertex is not in the box, make its heuristic value infinite
+    # so that it is never extended
+    indices = np.all(
+        np.logical_and(lower_left <= vertices, vertices <= upper_right), axis=1
+    )
+    # include the main delete list as a filter also
+    inside.a = np.logical_and(indices, del_list.a)
+    # preserve source and target
+    inside[source] = True
+    inside[target] = True
+    G.set_vertex_filter(inside)
+    for e in G.edges():
+        scalarisation[e] = weight * float_length[e] + (1 - weight) * pollution[e]
+    route = astar(G, source, target, scalarisation, empty_heuristic, pos)
     return [{"x": x[r], "y": y[r]} for r in route]
 
 
@@ -190,6 +230,26 @@ async def get_pollution(
     """
     return return_a_star(
         (source_lat, source_long), (target_lat, target_long), pollution
+    )
+
+
+@APP.get("/scalarisation/")
+async def get_linear_scalarisation(
+    source_lat: float,
+    source_long: float,
+    target_lat: float,
+    target_long: float,
+    weight: float,
+) -> List[Dict[str, str]]:
+    """
+    API route to get route from A to B.
+    sourceLat: latitude of the source point.
+    sourceLong: longitude of the source point.
+    targetLat: latitude of the target point.
+    targetLong: longitude of the target point.
+    """
+    return return_linear_scalarisation(
+        (source_lat, source_long), (target_lat, target_long), weight
     )
 
 
