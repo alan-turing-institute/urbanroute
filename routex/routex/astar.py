@@ -44,14 +44,14 @@ def astar(
     Returns: a list of vertices from the source to the target
     """
     # run A*
-    pred = astar_search(
+    dist, pred = astar_search(
         G,
         weight=edge_attribute,
         source=source,
         visitor=RouteVisitor(target),
         heuristic=lambda v: heuristic(v, target, pos),
-    )[1]
-
+    )
+    print(dist[target])
     # backtrack through the graph to the source
     route = []
     v = target
