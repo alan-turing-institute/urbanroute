@@ -50,4 +50,5 @@ class FileManager:
 
     def load_graph_from_file(self, filename: str = GRAPH_FILENAME) -> Graph:
         """Load the graph from file."""
-        return load_graph(self.root / filename)
+        with (self.root / filename).open(mode="rb") as graph_file:
+            return load_graph(graph_file)

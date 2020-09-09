@@ -15,7 +15,7 @@ def main(
     secretfile: str,
     cache_dir: Path = typer.Option("graphs", help="Directory to store graph."),
     overlay_dir: Path = typer.Option(
-        "apps/routing", help="Directory to store overlay."
+        "apps/routing/overlays", help="Directory to store overlay."
     ),
     instance_id: str = typer.Option(
         "d5e691ef9a1f2e86743f614806319d93e30709fe179dfb27e7b99b9b967c8737",
