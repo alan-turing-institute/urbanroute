@@ -13,6 +13,7 @@ if TYPE_CHECKING:
 OVERLAY_FILENAME = "london_no2_overlay.png"
 GRAPH_FILENAME = "london_no2_graph.gt"
 
+
 class FileManager:
     """Saving and loading files."""
 
