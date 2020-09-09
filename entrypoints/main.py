@@ -7,7 +7,7 @@ import time
 import typer
 import numpy as np
 from fastapi import FastAPI
-from graph_tool.all import load_graph, EdgePropertyMap
+from graph_tool.all import EdgePropertyMap
 from haversine import haversine
 from cleanair.loggers import get_logger
 from routex import astar, mospp
