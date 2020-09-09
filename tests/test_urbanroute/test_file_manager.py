@@ -2,6 +2,7 @@
 
 from urbanroute.utils import FileManager
 
+
 def test_save_load_graph(cache_dir, complete_4) -> None:
     """Test saving and loading graphs from file."""
     filename = "k4.gt"
