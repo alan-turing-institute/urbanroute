@@ -3,15 +3,17 @@
 import logging
 from pathlib import Path
 import geopandas as gpd
-from graph_tool import Graph
 import typer
+from graph_tool import Graph
 from cleanair.loggers import get_logger
 from urbanroute.geospatial import RoadQuery
+from urbanroute.utils import FileManager
 
 
 def main(
     secretfile: str,
-    input_dir: str = typer.Option("graphs", help="Directory to store graph file."),
+    cache_dir: Path = typer.Option("graphs", help="Directory to store graph."),
+    overlay_dir: Path = typer.Option("apps/routing", help="Directory to store overlay."),
     instance_id: str = typer.Option(
         "d5e691ef9a1f2e86743f614806319d93e30709fe179dfb27e7b99b9b967c8737",
         help="Id of the model fit.",
@@ -25,6 +27,7 @@ def main(
     logger = get_logger("Loading graph")
     if verbose:
         logger.setLevel(logging.DEBUG)
+    
 
     logger.info("Connecting to the database.")
     result = RoadQuery(secretfile=secretfile)
@@ -36,6 +39,9 @@ def main(
     gdf = gpd.GeoDataFrame.from_postgis(result_sql, result.dbcnxn.engine, crs=4326)
     logger.debug("%s rows returned from the result query.", len(gdf))
     logger.debug(gdf)
+    logger.info("Writing the geodataframe as a PNG to be used as the overlay for the web app.")
+    manager = FileManager(overlay_dir)
+    manager.save_overlay_to_file(gdf)
 
     # create an empty graph and add edges from the dataframe
     G = Graph(directed=True)
@@ -51,24 +57,9 @@ def main(
     logger.debug("The no2 attribute is %s", no2)
 
     # save the graph tools to a file
-
-    # try make directory if it doesn't exist, but don't make parents
-    graph_dir = Path(input_dir)
-    if not graph_dir.exists():
-        graph_dir.mkdir(parents=False, exist_ok=True)
-
-    # NOTE "gt" is the recommended format for speed
-    # see https://graph-tool.skewed.de/static/doc/quickstart.html#graph-i-o
-    filename = "london_no2.gt"
-    logger.info(
-        "Saving the graph to file called %s inside the directory %s",
-        filename,
-        graph_dir,
-    )
-    filepath = graph_dir / filename
-    with filepath.open(mode="wb+") as graph_file:
-        G.save(graph_file, fmt="gt")
-
+    logger.info("Saving the graph to file.")
+    manager = FileManager(cache_dir)
+    manager.save_graph_to_file(G)
 
 if __name__ == "__main__":
     typer.run(main)

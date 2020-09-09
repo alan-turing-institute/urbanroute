@@ -1,5 +1,6 @@
 """Find the least cost path from source to target by minimising air pollution."""
 
+from pathlib import Path
 from typing import Tuple, List, Dict
 import logging
 import time
@@ -16,13 +17,15 @@ from urbanroute.geospatial import (
     remove_leaves,
     remove_paths,
 )
+from urbanroute.utils import FileManager
 
 APP = FastAPI()
 logger = get_logger("Shortest path entrypoint")
 logger.setLevel(logging.DEBUG)
 logger.info("Loading graph of London...")
 start = time.time()
-G = load_graph("../graphs/Trafalgar.gt")
+manager = FileManager(Path.joinpath("..", "graphs"))
+G = manager.load_graph_from_file()
 logger.info("Graph loaded in %s seconds.", time.time() - start)
 logger.info("%s nodes and %s edges in the graph.", G.num_vertices, G.num_edges)
 
