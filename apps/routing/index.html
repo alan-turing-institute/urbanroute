@@ -25,13 +25,21 @@
                     <label>Algorithm</label>
                     <div class="field">
                         <div class="ui radio checkbox">
-                            <input type="radio" name="algorithm" checked="checked">
+                            <input id="A*" type="radio" name="algorithm" onclick="setAlgorithm(this.value)"
+                                checked="checked" value="A*">
                             <label>A* search</label>
                         </div>
                     </div>
                     <div class="field">
                         <div class="ui radio checkbox">
-                            <input type="radio" name="algorithm">
+                            <input id="scalarisation" type="radio" name="algorithm" onclick="setAlgorithm(this.value)"
+                                value="scalarisation">
+                            <label>Linear scalarisation</label>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <div class="ui radio checkbox">
+                            <input type="radio" name="algorithm" onclick="setAlgorithm(this.value)" value="mospp">
                             <label>Multi-objective</label>
                         </div>
                     </div>
@@ -41,15 +49,23 @@
                     <label>Variable</label>
                     <div class="field">
                         <div class="ui radio checkbox">
-                            <input type="radio" name="variable">
+                            <input id='distance' type="radio" name="variable" onclick="setVariable(this.value)"
+                                value="route">
                             <label>Distance</label>
                         </div>
                     </div>
                     <div class="field">
                         <div class="ui radio checkbox">
-                            <input type="radio" name="variable">
+                            <input type="radio" name="variable" onclick="setVariable(this.value)" value="pollution">
                             <label>Pollution</label>
                         </div>
+                    </div>
+                </div>
+                <div class="ui divider"></div>
+                <div class="grouped fields">
+                    <label>Scalarisation weight</label>
+                    <div class="slidecontainer">
+                        <input type="range" min="0" max="100" value="50" class="slider" id="scalarisationRange">
                     </div>
                 </div>
                 <div class="ui divider"></div>
@@ -57,7 +73,8 @@
                     <label>Overlay</label>
                     <div class="field">
                         <div class="ui toggle checkbox">
-                            <input type="checkbox" name="overlayToggle">
+                            <input id="pollutionToggle" type="checkbox" name="overlayToggle"
+                                onclick="togglePollutionOverlay()">
                             <label>Pollution</label>
                         </div>
                     </div>

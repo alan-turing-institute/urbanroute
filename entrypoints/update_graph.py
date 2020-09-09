@@ -60,7 +60,11 @@ def main(
     # NOTE "gt" is the recommended format for speed
     # see https://graph-tool.skewed.de/static/doc/quickstart.html#graph-i-o
     filename = "london_no2.gt"
-    logger.info("Saving the graph to file called %s inside the directory %s", filename, graph_dir)
+    logger.info(
+        "Saving the graph to file called %s inside the directory %s",
+        filename,
+        graph_dir,
+    )
     filepath = graph_dir / filename
     with filepath.open(mode="wb+") as graph_file:
         G.save(graph_file, fmt="gt")

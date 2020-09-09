@@ -1,6 +1,12 @@
 """Perform A* on the graph"""
 from typing import Tuple
-from graph_tool.all import AStarVisitor, astar_search, StopSearch, Graph
+from graph_tool.all import (
+    AStarVisitor,
+    astar_search,
+    StopSearch,
+    Graph,
+    EdgePropertyMap,
+)
 import numpy as np
 
 
@@ -11,13 +17,6 @@ class RouteVisitor(AStarVisitor):
         self.target = target
         self.count = 0
 
-    def examine_vertex(self, v: int):
-        self.count = self.count + 1
-        # we have examined too many vertices, running out of memory
-        if self.count > 20000:
-            # logger.log("The graph is too large")
-            raise Exception("Search graph is too big")
-
     def edge_relaxed(self, e: Tuple[int, int]):
         # stop if the target vertex has been reached
         if e.target() == self.target:
@@ -26,7 +25,12 @@ class RouteVisitor(AStarVisitor):
 
 
 def astar(
-    G: Graph, source: int, target: int, edge_attribute: str, heuristic, pos: np.ndarray
+    G: Graph,
+    source: int,
+    target: int,
+    edge_attribute: EdgePropertyMap,
+    heuristic,
+    pos: np.ndarray,
 ) -> np.ndarray:
     """
     Perform A* with given heuristic
@@ -42,7 +46,7 @@ def astar(
     # run A*
     pred = astar_search(
         G,
-        weight=G.edge_properties[edge_attribute],
+        weight=edge_attribute,
         source=source,
         visitor=RouteVisitor(target),
         heuristic=lambda v: heuristic(v, target, pos),
@@ -52,6 +56,8 @@ def astar(
     route = []
     v = target
     while v != source:
+        if v == pred[v]:
+            raise Exception("The start is not connected to the target")
         route.append(v)
         v = G.vertex(pred[v])
     route.append(v)
