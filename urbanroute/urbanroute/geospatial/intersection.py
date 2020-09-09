@@ -16,6 +16,7 @@ from cleanair.types import Source
 class RoadQuery(ResultQueryMixin, DBReader):
     """Class for querying air quality results on roads."""
 
+    # pylint: disable=no-member
     @property
     def result_table(self) -> AirQualityResultTable:
         """The sqlalchemy table to query."""
