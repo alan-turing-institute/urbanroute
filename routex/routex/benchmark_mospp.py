@@ -2,6 +2,7 @@
 from graph_tool.all import load_graph
 from routex import mospp, astar
 from haversine import haversine
+from urbanroute.geospatial import *
 
 G = load_graph("../../tests/test_graphs/Trafalgar.gt")
 pos = G.new_vertex_property("vector<double>")
@@ -32,11 +33,29 @@ def distance_heuristic(v, target, pos):
     return 0
 
 
+del_list = G.new_edge_property("bool")
 source = 253
 target = 3043
+remove_leaves(G, del_list)
+remove_self_edges(G)
+remove_parallel(G, float_length, pollution)
+remove_edges(G, float_length, pollution)
+remove_paths(G, del_list, pos, length, pollution)
+del_list[source] = True
+del_list[target] = True
+print(G.num_vertices(), G.num_edges())
+G.set_vertex_filter(del_list)
+print(G.num_vertices(), G.num_edges())
 # lazy stop should give same result as stopping only when all labels are done
-"""mospp(G.vertex(source), G.vertex(target), float_length, pollution)
-vertices = [
+mospp(
+    G.vertex(source),
+    G.vertex(target),
+    float_length,
+    pollution,
+    equality_dominates=True,
+    predecessors=2,
+)
+"""vertices = [
     int(v) for v in (astar(G, source, target, scalarisation, distance_heuristic, pos))
 ]
 vertices.reverse()

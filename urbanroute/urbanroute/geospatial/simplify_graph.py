@@ -1,24 +1,25 @@
 """Functions that add vertices to the boolean filter to be ignored by graph algorithms"""
 from haversine import haversine
-from graph_tool.all import Graph
+from graph_tool.all import *
+from routex import neighbour_distances
 
 
 def remove_leaves(G: Graph, del_list):
     """remove leaves (in-degree 0 or out-degree 0) from graph"""
+    count = 0
     for v in G.vertices():
         # remove leaf nodes
         if v.out_degree() == 0 or v.in_degree() == 0:
             del_list[v] = False
+            count += 0
+    print("Removed", count, "leaves")
 
 
 def remove_paths(G, del_list, pos, length, pollution):
     """remove vertices with in-degree 1 and out-degree 1"""
     new_edges = []
+    count = 0
     for v in G.vertices():
-        del_list[v] = True
-        # remove leaf nodes
-        if v.out_degree() == 0 or v.in_degree() == 0:
-            del_list[v] = False
         # remove nodes in paths so long as they are not more
         # than 50m away from either of their neighbours
         if v.out_degree() == 1 and v.in_degree() == 1:
@@ -59,9 +60,63 @@ def remove_paths(G, del_list, pos, length, pollution):
                 new_edges.append(e)
                 # remove vertex
                 del_list[v] = False
-
+                count += 1
+    print("Removed", count, "vertices and the same number of edges")
     # create a new edge bridging the removed vertex
     for e in new_edges:
         new = G.add_edge(e[0], e[1])
         length[new] = e[2]
         pollution[new] = e[3]
+
+
+def remove_self_edges(G: Graph):
+    """Remove all self-edges from the graph"""
+    edge_removal_list = []
+    for v in G.vertices():
+        for e in v.out_edges():
+            if e.target() == e.source():
+                edge_removal_list.append(e)
+    print("Removed", len(edge_removal_list), "self-edges")
+    for i in reversed(sorted(edge_removal_list)):
+        G.remove_edge(i)
+
+
+def remove_parallel(G: Graph, cost_1, cost_2):
+    """Remove all dominated parallel-edges from the graph"""
+    edge_removal_list = []
+    for v in G.vertices():
+        for u in v.out_neighbours():
+            parallel_edges = G.edge(v, u, all_edges=True)
+            for e in parallel_edges:
+                for f in parallel_edges:
+                    if (
+                        e != f
+                        and cost_1[e] >= cost_1[f]
+                        and cost_2[e] >= cost_1[f]
+                        and e not in edge_removal_list
+                    ):
+                        edge_removal_list.append(e)
+    print("Removed", len(edge_removal_list), "parallel edges")
+    for i in reversed(sorted(edge_removal_list)):
+        G.remove_edge(i)
+
+
+def remove_edges(G: Graph, cost_1, cost_2):
+    edge_removal_list = []
+    removals = 0
+    for v in G.vertices():
+        cost_1_distances = neighbour_distances(G, v, cost_1)
+        cost_2_distances = neighbour_distances(G, v, cost_2)
+        for e in v.out_edges():
+            if (
+                cost_1[e] > cost_1_distances[e.target()]
+                and cost_2[e] > cost_2_distances[e.target()]
+            ):
+                edge_removal_list.append(e)
+
+        # print("Removed", len(edge_removal_list), "edges")
+        for e in reversed(sorted(edge_removal_list)):
+            G.remove_edge(e)
+        removals += len(edge_removal_list)
+        edge_removal_list = []
+    print("Removed", removals, "edges")

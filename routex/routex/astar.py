@@ -3,6 +3,7 @@ from typing import Tuple
 from graph_tool.all import (
     AStarVisitor,
     astar_search,
+    dijkstra_search,
     StopSearch,
     Graph,
     EdgePropertyMap,
@@ -62,3 +63,19 @@ def astar(
         v = G.vertex(pred[v])
     route.append(v)
     return route
+
+
+def neighbour_distances(G, source, edge_attribute):
+    neighbour_filter = G.new_edge_property("bool")
+
+    neighbours = source.out_neighbours()
+    for e in source.out_edges():
+        neighbour_filter[e] = True
+        for f in e.target().out_edges():
+            if f.target() in neighbours:
+                neighbour_filter[f] = True
+
+    G.set_edge_filter(neighbour_filter)
+    dist, _ = dijkstra_search(G, edge_attribute, source)
+    G.set_edge_filter(None)
+    return dist

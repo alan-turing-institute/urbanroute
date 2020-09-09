@@ -2,6 +2,7 @@ import pytest
 import json
 from graph_tool.all import load_graph, Graph
 from routex import mospp, bidirectional_mospp
+from urbanroute.geospatial import *
 
 with open("./tests/test_routex/large_solution.json", "r") as read_file:
     data = json.load(read_file)
@@ -35,11 +36,25 @@ def test_mospp_large():
     solution = []
     for route in data["solution"]:
         solution.append(list(reversed(route)))
-
-    assert [
-        [G.vertex_index[r] for r in route]
-        for route in mospp(G.vertex(source), G.vertex(target), float_length, pollution)
-    ] == solution
+    del_list = G.new_vertex_property("bool")
+    remove_leaves(G, del_list)
+    remove_self_edges(G)
+    remove_parallel(G, float_length, pollution)
+    remove_edges(G, float_length, pollution)
+    remove_paths(G, del_list, pos, length, pollution)
+    del_list[source] = True
+    del_list[target] = True
+    print(G.num_vertices(), G.num_edges())
+    G.set_vertex_filter(del_list)
+    print(G.num_vertices(), G.num_edges())
+    assert sorted(
+        [
+            [G.vertex_index[r] for r in route]
+            for route in mospp(
+                G.vertex(source), G.vertex(target), float_length, pollution
+            )
+        ]
+    ) == sorted(solution)
 
 
 def test_bidirectional_mospp():

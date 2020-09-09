@@ -20,43 +20,60 @@ def stopping_condition(vertex_labels, target, minimum_resource):
     return False
 
 
-def dominatesList(resources, otherResource):
-    return np.any(
-        np.logical_and(
-            (resources <= otherResource).all(axis=1),
-            (resources < otherResource).any(axis=1),
-        )
-    )
-
-
-def dominatesListNoEquality(resources, otherResource):
-    return np.any((resources <= otherResource).all(axis=1))
-
-
-def add_label(target_vertex, vertex_labels, labels, new_label):
+def add_label(
+    target_vertex,
+    vertex_labels,
+    labels,
+    new_label,
+    equality_dominates,
+    domination_check_count,
+):
     # check if other labels exist for this vertex
     if target_vertex in vertex_labels:
         # check if the new label is dominated
         # list of resources of all the labels of the vertex
         resource_list = np.single([label[0] for label in vertex_labels[target_vertex]])
         # check domination
-        if not np.any(
-            np.logical_and(
-                (resource_list <= new_label[0]).all(axis=1),
-                (resource_list < new_label[0]).any(axis=1),
-            )
-        ):
-            # remove labels that this new label dominates from the vertex labels
-            remove_list = (resource_list >= new_label[0]).all(axis=1)
-            vertex_labels[target_vertex] = [
-                value
-                for index, value in enumerate(vertex_labels[target_vertex])
-                if not remove_list[index]
-            ]
-            # add the new label as it is not dominated
-            vertex_labels[target_vertex].append(new_label)
-            heapq.heappush(labels, new_label)
-            return True
+        if equality_dominates:
+            comparison = resource_list <= new_label[0]
+            domination_check_count[0] += len(resource_list)
+            if not np.any(comparison.all(axis=1)):
+                # remove labels that this new label dominates from the vertex labels
+                remove_list = (np.logical_not(comparison)).all(axis=1)
+                domination_check_count[0] += len(resource_list)
+                vertex_labels[target_vertex] = [
+                    value
+                    for index, value in enumerate(vertex_labels[target_vertex])
+                    if not remove_list[index]
+                ]
+                # add the new label as it is not dominated
+                vertex_labels[target_vertex].append(new_label)
+                heapq.heappush(labels, new_label)
+                return True
+        else:
+            domination_check_count[0] += len(resource_list)
+            if not np.any(
+                np.logical_and(
+                    (resource_list <= new_label[0]).all(axis=1),
+                    (resource_list < new_label[0]).any(axis=1),
+                )
+            ):
+                domination_check_count[0] += len(resource_list)
+                # remove labels that this new label dominates from the vertex labels
+                remove_list = np.logical_and(
+                    (resource_list >= new_label[0]).all(axis=1),
+                    (resource_list > new_label[0]).any(axis=1),
+                )
+                vertex_labels[target_vertex] = [
+                    value
+                    for index, value in enumerate(vertex_labels[target_vertex])
+                    if not remove_list[index]
+                ]
+                # add the new label as it is not dominated
+                vertex_labels[target_vertex].append(new_label)
+                heapq.heappush(labels, new_label)
+                return True
+
     else:
         # no labels for this vertex yet, add the new label
         vertex_labels[target_vertex] = [new_label]
@@ -65,26 +82,31 @@ def add_label(target_vertex, vertex_labels, labels, new_label):
     return False
 
 
-def checkIfPredecessor(vertex, label):
-    labeltracker = label
+def checkIfPredecessor(vertex, label, predecessors):
+    label_tracker = label
     count = 0
-    while labeltracker[1] != None:
+    while label_tracker[1] is not None:
         count += 1
-        if count > 2:
+        if count > predecessors:
             break
-        labeltracker = labeltracker[1]
-        if vertex == labeltracker[2]:
+        label_tracker = label_tracker[1]
+        if vertex == label_tracker[2]:
             return True
     return False
 
 
 def mospp(
-    source: Vertex, target: Vertex, cost_1: EdgePropertyMap, cost_2: EdgePropertyMap
+    source: Vertex,
+    target: Vertex,
+    cost_1: EdgePropertyMap,
+    cost_2: EdgePropertyMap,
+    equality_dominates=False,
+    predecessors=0,
 ):
     """Run MOSPP on graph. Returns list of routes, each route being a list of vertices"""
-    x_process = []
-    y_process = []
-    labels = [((0, 0), None, source, set({}))]
+    labels_expanded_count = 0
+    domination_check_count = [0]
+    labels = [((0, 0), None, source)]
     # labels associated with each vertex
     vertex_labels = {source: [labels[0]]}
     skip = 1000
@@ -106,9 +128,10 @@ def mospp(
         current = heapq.heappop(labels)
         # don't expand dominated labels, and don't go to previous vertex
         if current[2] != target and current in vertex_labels.get(current[2], []):
+            labels_expanded_count += 1
             for out_edge in current[2].out_edges():
                 # we're not interested in visiting any predecessors
-                if not checkIfPredecessor(out_edge.target(), current):
+                if not checkIfPredecessor(out_edge.target(), current, predecessors):
                     # create the new label with updated resource values
                     new_label = (
                         (
@@ -117,14 +140,17 @@ def mospp(
                         ),
                         current,
                         out_edge.target(),
-                        set({})
-                        # current[3].copy()
                     )
-                    new_label[3].add(out_edge.target())
-                    add_label(out_edge.target(), vertex_labels, labels, new_label)
-                    """if out_edge.target() == target:
-                        x_process.append(new_label[0][0])
-                        y_process.append(new_label[0][1])"""
+                    add_label(
+                        out_edge.target(),
+                        vertex_labels,
+                        labels,
+                        new_label,
+                        equality_dominates,
+                        domination_check_count,
+                    )
+    print(labels_expanded_count, "labels expanded")
+    print(domination_check_count, "domination checks")
     # begin backtracking
     routes = []
     route = []
@@ -138,36 +164,5 @@ def mospp(
         route.reverse()
         routes.append(route)
         route = []
-    # plt.scatter(
-    #   [r[0][0] for r in vertex_labels[target]],
-    #   [r[0][1] for r in vertex_labels[target]],
-    # )
-
-    """fig, ax = plt.subplots()
-    xdata, ydata = [], []
-    (ln,) = plt.plot([], [], "ro")
-    print(x_process)
-    print(y_process)
-
-    def init():
-        ax.set_xlim(25, 45)
-        ax.set_ylim(25, 45)
-        return (ln,)
-
-    def update(frame):
-        xdata.append(frame)
-        ydata.append(np.sin(frame))
-        ln.set_data(x_process[: int(frame)], y_process[: int(frame)])
-        return (ln,)
-
-    ani = FuncAnimation(
-        fig,
-        update,
-        frames=np.linspace(0, 10000, 10000),
-        init_func=init,
-        blit=True,
-        interval=200,
-    )
-    plt.show()
-    print([r[0][1] / (r[0][0] + r[0][1]) for r in vertex_labels[target]])"""
+    print("Number of routes:", len(routes))
     return routes
