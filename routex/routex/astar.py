@@ -65,6 +65,23 @@ def astar(
     return route
 
 
+def distances(G: Graph, source: int, edge_attribute: EdgePropertyMap,) -> np.ndarray:
+    """
+    Perform Dijkstra and return distance
+    Args:
+        G: graph
+        source: start vertex
+        target: end vertex (search terminates here)
+        edge_attribute: the edge attribute that defines the cost of an edge
+        heuristic: a function that underestimates the distance from any vertex to the target
+        pos: positional attribute for vertices
+    Returns: distances of vertices from the source 
+    """
+    # run A*
+    dist, paths = dijkstra_search(G, weight=edge_attribute, source=source)
+    return (dist, paths)
+
+
 def neighbour_distances(G, source, edge_attribute):
     neighbour_filter = G.new_edge_property("bool")
 

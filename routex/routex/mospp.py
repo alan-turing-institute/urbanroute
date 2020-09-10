@@ -102,19 +102,31 @@ def mospp(
     cost_2: EdgePropertyMap,
     equality_dominates=False,
     predecessors=0,
+    skip=math.inf,
+    cost_1_bound=math.inf,
+    cost_2_bound=math.inf,
+    cost_1_list=None,
+    cost_2_list=None,
 ):
     """Run MOSPP on graph. Returns list of routes, each route being a list of vertices"""
     labels_expanded_count = 0
     domination_check_count = [0]
     labels = [((0, 0), None, source)]
+    minimum_changed = False
+    minimum_resource = [math.inf, math.inf]
     # labels associated with each vertex
     vertex_labels = {source: [labels[0]]}
-    skip = 1000
     while labels:
+        # pick lexicographically smallest label if it isn't
+        # already excluded
+        current = heapq.heappop(labels)
         # we could be removing the element responsible for the current minimum
+        if current[0][1] <= minimum_resource[1]:
+            minimum_changed = True
         skip -= 1
-        if skip == 0:
+        if skip <= 0 and minimum_changed:
             skip = 1000
+            minimum_changed = False
             resource_list = np.array([label[0] for label in labels])
             if np.size(resource_list) > 0:
                 minimum_resource = np.min(resource_list, axis=0)
@@ -123,9 +135,6 @@ def mospp(
                 minimum_resource[1] = math.inf
             if stopping_condition(vertex_labels, target, minimum_resource):
                 break
-        # pick lexicographically smallest label if it isn't
-        # already excluded
-        current = heapq.heappop(labels)
         # don't expand dominated labels, and don't go to previous vertex
         if current[2] != target and current in vertex_labels.get(current[2], []):
             labels_expanded_count += 1
@@ -141,14 +150,26 @@ def mospp(
                         current,
                         out_edge.target(),
                     )
-                    add_label(
-                        out_edge.target(),
-                        vertex_labels,
-                        labels,
-                        new_label,
-                        equality_dominates,
-                        domination_check_count,
-                    )
+                    # only expand labels with pollution below the pollution upper bound
+                    if (
+                        cost_1_list
+                        and cost_2_list
+                        and new_label[0][0] + cost_1_list[out_edge.target()]
+                        <= cost_1_bound
+                        and new_label[0][1] + cost_2_list[out_edge.target()]
+                        <= cost_2_bound
+                    ) or (
+                        new_label[0][0] <= cost_1_bound
+                        and new_label[0][1] <= cost_2_bound
+                    ):
+                        add_label(
+                            out_edge.target(),
+                            vertex_labels,
+                            labels,
+                            new_label,
+                            equality_dominates,
+                            domination_check_count,
+                        )
     print(labels_expanded_count, "labels expanded")
     print(domination_check_count, "domination checks")
     # begin backtracking

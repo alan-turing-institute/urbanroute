@@ -7,7 +7,7 @@ from urbanroute.geospatial import (
     coord_match,
     remove_leaves,
     remove_paths,
-    remove_self_edges,remove_parallel,remove_edges
+    remove_self_edges,remove_parallel,remove_edges,remove_vertices
 )
 
 G = load_graph('../../tests/test_graphs/Trafalgar.gt')
@@ -51,39 +51,37 @@ vertices = np.delete(vertices, 0, 1)
 
 source = 3000
 target = 3043"
-ELLIPTICAL="box = ellipse_bounding_box(pos[source], pos[target], tau=1.00)
+ELLIPTICAL="box = ellipse_bounding_box(pos[source], pos[target], tau=1.10)
 
 lower_left = np.array([box[3], box[1]])
 upper_right = np.array([box[2], box[0]])
-print(pos[source])
-print(pos[target])
-print(lower_left)
-print(upper_right)
 # Euclidean heuristic. If a vertex is not in the box, make its heuristic value infinite
 # so that it is never extended
 indices = np.all(
     np.logical_and(lower_left <= vertices, vertices <= upper_right), axis=1
 )
+print('Removed', len(np.where(indices==False)[0]), 'vertices by elliptical method')
 # include the main delete list as a filter also
 inside.a = np.logical_and(indices, del_list.a)
 # preserve source and target
 inside[source] = True
 inside[target] = True
 G.set_vertex_filter(inside)
-print('Removed', len(np.where(inside==False)), 'node')
+print('Removed', len(np.where(inside.a==False)[0]), 'vertices overall')
+print(G.num_vertices(), G.num_edges())
 "
 ALLREMOVALS="
 remove_leaves(G, del_list)
 remove_self_edges(G)
 remove_parallel(G, float_length, pollution)
 remove_edges(G, float_length, pollution)
-remove_paths(G, del_list, pos, float_length, pollution)
+remove_paths(G, del_list, pos, float_length, pollution)  
+(pollution_bound,distance_bound, pollutions, distances) = remove_vertices(G, source, target, float_length, pollution, del_list)
+print(G.num_vertices(), G.num_edges())
 del_list[source] = True
 del_list[target] = True
-print(G.num_vertices(), G.num_edges())
 G.set_vertex_filter(del_list)
 print(G.num_vertices(), G.num_edges())
-
 "
 #Path compression
 echo "Path compression"
@@ -103,14 +101,15 @@ python3 -m timeit -n 3 -r 2 -s "$SETUP" "remove_parallel(G, float_length, pollut
 
 #Removing edges for which there are better paths of length 2
 echo "Remove dominated edges"
-python3 -m timeit -n 3 -r 2 -s "$SETUP" "remove_edges(G, float_length, pollution)"
+python3 -m timeit -n 3 -r 2 -s "$SETUP" "remove_edges(G,  float_length, pollution)"
 
 #Elliptical node removal
 echo "Elliptical node removal"
 python3 -m timeit -n 3 -r 2 -s "$SETUP" "$ELLIPTICAL"
 
 #Node removal with Dijkstra's/A*
-echo "Node removal via Dijkstra"
+echo "Node removal via Dijkstra after elliptical node removal"
+python3 -m timeit -n 3 -r 2 -s "$SETUP" "${ELLIPTICAL}remove_vertices(G, source, target, float_length, pollution, del_list)"
 
 #Basic martins (uses lexicographic order)
 echo "Basic martins:"
@@ -128,12 +127,21 @@ echo "Combine both of these optimisations"
 python3 -m timeit -n 3 -r 2 -s "$SETUP" "mospp(G.vertex(source), G.vertex(target), float_length, pollution, equality_dominates=True, predecessors=2)"
 
 echo "Combine both of these optimisations with maximum graph reduction"
-python3 -m timeit -n 3 -r 2 -s "$SETUP$ALLREMOVALS" "mospp(G.vertex(source), G.vertex(target), float_length, pollution, equality_dominates=True, predecessors=2)"
+python3 -m timeit -n 3 -r 2 -s "$SETUP$ALLREMOVALS" "${ELLIPTICAL}mospp(G.vertex(source), G.vertex(target), float_length, pollution, equality_dominates=True, predecessors=2)"
 
 echo "Bidirectional search with both of these optimisations:"
+python3 -m timeit -n 3 -r 2 -s "$SETUP$ALLREMOVALS" "${ELLIPTICAL}bidirectional_mospp(G.vertex(source), G.vertex(target), float_length, pollution)"
 #Full stopping condition (removing labels based on Pareto dominance by target)
 #Minimum stopping condition always
-#Minimum stopping condition infrequently
+echo "Minimum stopping condition always"
+python3 -m timeit -n 3 -r 2 -s "$SETUP$ALLREMOVALS" "${ELLIPTICAL}mospp(G.vertex(source), G.vertex(target), float_length, pollution, equality_dominates=True, predecessors=2, skip=1)"
 
+#Minimum stopping condition infrequently
+echo "Minimum stopping condition infrequently"
+python3 -m timeit -n 3 -r 2 -s "$SETUP$ALLREMOVALS" "${ELLIPTICAL}mospp(G.vertex(source), G.vertex(target), float_length, pollution, equality_dominates=True, predecessors=2, skip=1000)"
+
+#Combine all options with additional RCSPP-style constraint (without running APSP prior)
+echo "Combine all options with additional RCSPP-style constraint"
+python3 -m timeit -n 3 -r 2 -s "$SETUP$ALLREMOVALS" "${ELLIPTICAL}mospp(G.vertex(source), G.vertex(target), float_length, pollution, equality_dominates=True, predecessors=2, skip=1000, cost_1_list=distances, cost_2_list=pollutions, cost_1_bound = distance_bound, cost_2_bound=pollution_bound)"
 
 

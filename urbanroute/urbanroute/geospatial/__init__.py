@@ -9,4 +9,5 @@ from .simplify_graph import (
     remove_self_edges,
     remove_parallel,
     remove_edges,
+    remove_vertices,
 )
