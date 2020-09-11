@@ -29,6 +29,7 @@ def ellipse_bounding_box(
         theta = math.pi / 2
     else:
         theta = math.atan((target[1] - source[1]) / (target[0] - source[0]))
+    tau = 1.1
     center_latitude = (target[1] + source[1]) / 2
     center_longitude = (target[0] + source[0]) / 2
     # here we define an ellipse with the source and target points as foci
