@@ -17,6 +17,7 @@ setuptools.setup(
     install_requires=[
         "cleanair==0.0.1",
         "geopandas==0.7.0",
+        "haversine==2.3.0",
         "networkx==2.4",
         "osmnx==0.14.1",
         "sqlalchemy==1.3.11",

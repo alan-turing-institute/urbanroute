@@ -20,7 +20,7 @@ map.on('load', () => {
     //add routing layer and an empty source (as no route currently)
     map.addSource("myImageSource", {
         "type": "image",
-        "url": "pollution.png",
+        "url": "london_no2_overlay.png",
         "coordinates": [
             [-0.550992140362932, 51.71276304828286],
             [0.3764553855290124, 51.71276304828286],
@@ -109,15 +109,23 @@ function setAlgorithm(result) {
     }
 
 }
+let weight = 0.5
+//slider controls
+let slider = document.getElementById("scalarisationRange");
+slider.onchange = function () {
+    weight = this.value / 100;
+    window.getRoute();
+}
 //when called from the mapbox plugin, if both origin and destination are present, draw a route
 window.getRoute = function processRoute() {
     if (origin && destination) {
         console.log(origin.feature.geometry.coordinates);
-        fetch(`http://127.0.0.1:8000/${route}/?source_lat=${origin.feature.geometry.coordinates[1]}&source_long=${origin.feature.geometry.coordinates[0]}&target_lat=${destination.feature.geometry.coordinates[1]}&target_long=${destination.feature.geometry.coordinates[0]}`)
+        fetch(`http://127.0.0.1:8000/${route}/?source_lat=${origin.feature.geometry.coordinates[1]}&source_long=${origin.feature.geometry.coordinates[0]}&target_lat=${destination.feature.geometry.coordinates[1]}&target_long=${destination.feature.geometry.coordinates[0]}
+        &weight=${weight}`)
             .then(response => response.json()).then(data => {
                 console.log(data)
                 map.setLayoutProperty('route', 'visibility', 'visible');
-                if (algorithm == "A*") {
+                if (algorithm == "A*" || algorithm == "scalarisation") {
                     map.getSource('route').setData({
                         'type': 'Feature',
                         'properties': {
@@ -128,7 +136,7 @@ window.getRoute = function processRoute() {
                             'coordinates': data.map(point => [point.x, point.y])
                         }
                     })
-                } else {
+                } else if (algorithm == "mospp") {
                     let source = {
                         'type': 'FeatureCollection',
                         'features': []
