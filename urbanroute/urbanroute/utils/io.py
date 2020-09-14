@@ -7,8 +7,12 @@ from graph_tool import Graph
 if TYPE_CHECKING:
     import pandas as pd
 
+
 def from_dataframes(
-    edge_df: pd.DataFrame, vertex_df: pd.DataFrame, source: str = "startnode", target: str = "endnode"
+    edge_df: pd.DataFrame,
+    vertex_df: pd.DataFrame,
+    source: str = "startnode",
+    target: str = "endnode",
 ) -> Graph:
     """Graph from edge and vertex dataframes. Copies attributes as well."""
     # create directed graph from edge list

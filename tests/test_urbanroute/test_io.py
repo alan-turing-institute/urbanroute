@@ -2,6 +2,7 @@
 
 from urbanroute.utils import from_dataframes
 
+
 def test_from_dataframes(path_edge_df, path_vertex_df) -> None:
     """Test a graph can be loaded from dataframes."""
     G = from_dataframes(path_edge_df, path_vertex_df)

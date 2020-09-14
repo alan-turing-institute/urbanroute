@@ -26,7 +26,9 @@ def complete_4() -> Graph:
     G.edge_properties["five"] = five
     return G
 
+
 PATH_LENGTH = 5
+
 
 @pytest.fixture(scope="function")
 def path_edge_df() -> pd.DataFrame:
@@ -39,6 +41,7 @@ def path_edge_df() -> pd.DataFrame:
             length=np.random.rand(PATH_LENGTH),
         )
     )
+
 
 @pytest.fixture(scope="function")
 def path_vertex_df() -> pd.DataFrame:

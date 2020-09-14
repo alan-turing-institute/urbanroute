@@ -1,12 +1,16 @@
 """Geospatial intersection between graphs and dataframes."""
 
-from typing import Any
+from __future__ import annotations
+from typing import Any, TYPE_CHECKING
 from sqlalchemy import func
 from cleanair.databases import DBReader
 from cleanair.databases.tables import AirQualityResultTable, OSHighway
 from cleanair.decorators import db_query
 from cleanair.mixins import ResultQueryMixin
 from cleanair.types import Source
+
+if TYPE_CHECKING:
+    import pandas as pd
 
 
 class RoadQuery(ResultQueryMixin, DBReader):
@@ -53,27 +57,33 @@ class RoadQuery(ResultQueryMixin, DBReader):
                 OSHighway.toid.label("edge_id"),
                 OSHighway.startnode,
                 OSHighway.endnode,
-                (func.ST_DumpPoints(OSHighway.geom)).geom.label("geom"),    # the point geom
-                (func.ST_DumpPoints(OSHighway.geom)).path[2].label("path_id"),  # number of point in sequence
+                (func.ST_DumpPoints(OSHighway.geom)).geom.label(
+                    "geom"
+                ),  # the point geom
+                (func.ST_DumpPoints(OSHighway.geom))
+                .path[2]
+                .label("path_id"),  # number of point in sequence
             ).subquery()
             linestrings = session.query(
-                dump_points.c.edge_id, dump_points.c.startnode, dump_points.c.endnode, func.ST_MakeLine(dump_points.c.geom).label("geom")
-            ).group_by(dump_points.c.edge_id, dump_points.c.startnode, dump_points.c.endnode)
+                dump_points.c.edge_id,
+                dump_points.c.startnode,
+                dump_points.c.endnode,
+                func.ST_MakeLine(dump_points.c.geom).label("geom"),
+            ).group_by(
+                dump_points.c.edge_id, dump_points.c.startnode, dump_points.c.endnode
+            )
             return linestrings
 
     @db_query
     def __query_endpoints(self, linestrings, function, column) -> Any:
         """Get either start or end nodes."""
         with self.dbcnxn.open_session() as session:
-            return (
-                session.query(
-                    column,
-                    (function(linestrings.c.geom)).label("geom"),
-                    (func.ST_X(function(linestrings.c.geom))).label("lon"),
-                    (func.ST_Y(function(linestrings.c.geom))).label("lat"),
-                )
-                .group_by(column, linestrings.c.geom)
-            )
+            return session.query(
+                column,
+                (function(linestrings.c.geom)).label("geom"),
+                (func.ST_X(function(linestrings.c.geom))).label("lon"),
+                (func.ST_Y(function(linestrings.c.geom))).label("lat"),
+            ).group_by(column, linestrings.c.geom)
 
     @db_query
     def query_start_nodes(self) -> Any:
@@ -83,10 +93,28 @@ class RoadQuery(ResultQueryMixin, DBReader):
             This uses the unique start and end of edges to get the nodes.
         """
         linestrings = self.cast_roads_to_linestring(output_type="subquery")
-        return self.__query_endpoints(linestrings, func.ST_StartPoint, linestrings.c.startnode)
+        return self.__query_endpoints(
+            linestrings, func.ST_StartPoint, linestrings.c.startnode
+        )
 
     @db_query
     def query_end_nodes(self) -> Any:
         """Get the end nodes."""
         linestrings = self.cast_roads_to_linestring(output_type="subquery")
-        return self.__query_endpoints(linestrings, func.ST_EndPoint, linestrings.c.endnode)
+        return self.__query_endpoints(
+            linestrings, func.ST_EndPoint, linestrings.c.endnode
+        )
+
+    def get_nodes_df(self) -> pd.DataFrame:
+        """Get all nodes in the London graph."""
+        # get the nodes in the graph
+        startnodes = self.query_start_nodes(output_type="df")
+        endnodes = self.query_end_nodes(output_type="df")
+        startnodes = startnodes.rename(columns=dict(startnode="node"))
+        endnodes = endnodes.rename(columns=dict(endnode="node"))
+        self.logger.info("%s start nodes, %s end nodes", len(startnodes), len(endnodes))
+        nodes_df = startnodes.append(endnodes)
+        nodes_df = nodes_df.drop_duplicates(subset="node")
+        nodes_df = nodes_df.set_index("node")
+        self.logger.info("%s nodes after removing duplicates", len(nodes_df))
+        return nodes_df
