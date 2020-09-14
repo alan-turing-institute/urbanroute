@@ -1,5 +1,5 @@
 SETUP="from graph_tool.all import load_graph, graphviz_draw
-from routex import mospp, astar
+from routex import mospp, astar, bidirectional_mospp
 import numpy as np
 from haversine import haversine
 from urbanroute.geospatial import (
@@ -143,5 +143,3 @@ python3 -m timeit -n 3 -r 2 -s "$SETUP$ALLREMOVALS" "${ELLIPTICAL}mospp(G.vertex
 #Combine all options with additional RCSPP-style constraint (without running APSP prior)
 echo "Combine all options with additional RCSPP-style constraint"
 python3 -m timeit -n 3 -r 2 -s "$SETUP$ALLREMOVALS" "${ELLIPTICAL}mospp(G.vertex(source), G.vertex(target), float_length, pollution, equality_dominates=True, predecessors=2, skip=1000, cost_1_list=distances, cost_2_list=pollutions, cost_1_bound = distance_bound, cost_2_bound=pollution_bound)"
-
-

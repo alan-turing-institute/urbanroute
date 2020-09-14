@@ -20,6 +20,15 @@ def stopping_condition(vertex_labels, target, minimum_resource):
     return False
 
 
+def test_pareto_optimal(label_set):
+    for a in label_set:
+        for b in label_set:
+            if a != b:
+                if a[0][0] <= b[0][0] and a[0][1] <= b[0][1]:
+                    return False
+    return True
+
+
 def add_label(
     target_vertex,
     vertex_labels,
@@ -175,6 +184,10 @@ def mospp(
     # begin backtracking
     routes = []
     route = []
+    print(
+        "Are all the solutions Pareto optimal?",
+        test_pareto_optimal(vertex_labels[target]),
+    )
     for label in vertex_labels[target]:
         route.append(target)
         # keep track of our current label

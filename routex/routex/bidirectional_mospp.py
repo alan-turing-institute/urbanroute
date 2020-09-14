@@ -38,14 +38,36 @@ def construct_path(forwards_label, backwards_label, source, target):
     return forward_section + backward_section
 
 
+def test_pareto_optimal_bidirectional(label_set):
+    for a in label_set:
+        for b in label_set:
+            if a != b and a[3] and b[3]:
+                if a[0][0] <= b[0][0] and a[0][1] <= b[0][1]:
+                    print("Counterexample", a[0], b[0])
+                    return False
+    return True
+
+
 def bidirectional_mospp(
-    source: Vertex, target: Vertex, cost_1: EdgePropertyMap, cost_2: EdgePropertyMap
+    source: Vertex,
+    target: Vertex,
+    cost_1: EdgePropertyMap,
+    cost_2: EdgePropertyMap,
+    equality_dominates=False,
+    predecessors=0,
+    skip=math.inf,
+    cost_1_bound=math.inf,
+    cost_2_bound=math.inf,
+    cost_1_list=None,
+    cost_2_list=None,
 ):
     """Run MOSPP on graph. Returns list of routes, each route being a list of vertices"""
 
     labels_forwards = [((0, 0), None, source)]
     labels_backwards = [((0, 0), None, target)]
     skip = 1000
+    labels_expanded_count = 0
+    domination_check_count = [0]
     # labels associated with each vertex
     vertex_labels_forwards = {source: [labels_forwards[0]]}
     vertex_labels_backwards = {target: [labels_backwards[0]]}
@@ -80,12 +102,13 @@ def bidirectional_mospp(
             ] not in in_resulting_paths and current in vertex_labels_forwards.get(
                 current[2], []
             ):
+                labels_expanded_count += 1
                 for out_edge in current[2].out_edges():
                     # create the new label with updated resource values
                     new_label = (
                         (
-                            current[0][0] + cost_1[out_edge] + 0.001,
-                            current[0][1] + cost_2[out_edge] + 0.001,
+                            current[0][0] + cost_1[out_edge],
+                            current[0][1] + cost_2[out_edge],
                         ),
                         current,
                         out_edge.target(),
@@ -95,6 +118,8 @@ def bidirectional_mospp(
                         vertex_labels_forwards,
                         labels_forwards,
                         new_label,
+                        equality_dominates,
+                        domination_check_count,
                     )
                     # mark this node as a frontier node
                     if added and out_edge.target() in vertex_labels_backwards:
@@ -110,12 +135,13 @@ def bidirectional_mospp(
             ] not in in_resulting_paths and current in vertex_labels_backwards.get(
                 current[2], []
             ):
+                labels_expanded_count += 1
                 for in_edge in current[2].in_edges():
                     # create the new label with updated resource values
                     new_label = (
                         (
-                            current[0][0] + cost_1[in_edge] + 0.001,
-                            current[0][1] + cost_2[in_edge] + 0.001,
+                            current[0][0] + cost_1[in_edge],
+                            current[0][1] + cost_2[in_edge],
                         ),
                         current,
                         in_edge.source(),
@@ -125,20 +151,51 @@ def bidirectional_mospp(
                         vertex_labels_backwards,
                         labels_backwards,
                         new_label,
+                        equality_dominates,
+                        domination_check_count,
                     )
                     # mark this node as a frontier node
                     if added and in_edge.source() in vertex_labels_forwards:
                         in_resulting_paths[in_edge.source()] = True
             direction = "forwards"
 
+    print(labels_expanded_count, "labels expanded")
+    print(domination_check_count, "domination checks")
     # performing backtracking
+    solution_set = []
     routes = []
+
+    def solution_dominates(a, b):
+        return a[3] and a[0][0] <= b[0][0] and a[0][1] <= b[0][1]
+
     # reconstruct path from meeting frontier of both searches
     for key, _ in in_resulting_paths.items():
         for forward_label in vertex_labels_forwards[key]:
             for backward_label in vertex_labels_backwards[key]:
-                # perform reconstruction
-                routes.append(
-                    construct_path(forward_label, backward_label, source, target)
-                )
+                new_solution = [
+                    (
+                        forward_label[0][0] + backward_label[0][0],
+                        forward_label[0][1] + backward_label[0][1],
+                    ),
+                    forward_label,
+                    backward_label,
+                    True,
+                ]
+                for solution in solution_set:
+                    if solution_dominates(solution, new_solution):
+                        break
+                else:
+                    for solution in solution_set:
+                        if solution_dominates(new_solution, solution):
+                            solution[3] = False
+                    solution_set.append(new_solution)
+    print(
+        "Are all the solutions Pareto optimal?",
+        test_pareto_optimal_bidirectional(solution_set),
+    )
+    for solution in solution_set:
+        # perform reconstruction
+        if solution[3]:
+            routes.append(construct_path(solution[1], solution[2], source, target))
+    print("Number of routes:", len(routes))
     return routes
