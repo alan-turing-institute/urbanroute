@@ -20,7 +20,7 @@ map.on('load', () => {
     //add routing layer and an empty source (as no route currently)
     map.addSource("myImageSource", {
         "type": "image",
-        "url": "pollution.png",
+        "url": "overlays/london_no2_overlay.png",
         "coordinates": [
             [-0.550992140362932, 51.71276304828286],
             [0.3764553855290124, 51.71276304828286],

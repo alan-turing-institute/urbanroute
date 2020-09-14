@@ -12,25 +12,22 @@ conda activate urbanroute
 
 If you only want to run our routing algorithms without real-world data, skip straight to [Install routex](#install-routex).
 
-### Install urbanroute
+### Install routex
 
-The `urbanroute` package is intended to create graphs of urban networks with variables
-on the edges and vertices that are extracted from urban datasets.
-
-We recommend installing `osmnx` with conda before installing the remaining dependencies:
+The `routex` package consists of the routing algorithms themselves.
+All algorithms depend on the graph tools package:
 
 ```bash
-conda install -c conda-forge osmnx
+conda install -c conda-forge graph-tool
 ```
 
-You can use pip to do the rest:
+Install routex with pip:
 
 ```bash
-pip install -r requirements.txt     # developer tools
-pip install -e urbanroute
+pip install -e routex
 ```
 
-#### Install cleanair
+### Install cleanair
 
 To connect to the database of model predictions requires the [cleanair](https://github.com/alan-turing-institute/clean-air-infrastructure) package.
 You should refer to the [README](https://github.com/alan-turing-institute/clean-air-infrastructure) for a full list of instructions to setup the cleanair repo.
@@ -40,11 +37,7 @@ The minimal set of instructions are:
 1. Clone the repository:
 ```bash
 git clone https://github.com/alan-turing-institute/clean-air-infrastructure.git
-```
-TEMPORARY FIX for version mis-match:
-```bash
-git checkout iss_389_requirements
-```
+
 2. Install cleanair into your conda environment.
 ```bash
 pip install -e containers/cleanair
@@ -55,20 +48,34 @@ To connect to the database you must:
 3. [Login to azure](https://github.com/alan-turing-institute/clean-air-infrastructure#login-to-azure).
 4. [Access the cleanair production database](https://github.com/alan-turing-institute/clean-air-infrastructure#access-cleanair-production-database).
 
-### Install routex
 
-The `routex` package consists of the routing algorithms themselves. Install with pip:
+### Install urbanroute
+
+The `urbanroute` package is intended to create graphs of urban networks with variables
+on the edges and vertices that are extracted from urban datasets.
+
+You can use pip to install the requirements
 
 ```bash
-pip install -e routex
+pip install -r requirements.txt     # developer tools
+pip install -e urbanroute
 ```
 
-### Run the urbanroute api
+## API
+
 Run the urbanroute api by running fast api:
 ```cd entrypoints
 uvicorn air_pollution_shortest_path:APP
 ```
 Making a get request to the /route/ API route with defined source and target coordinates will return a route as a list of coordinates from the source to the target.
+
+### Live graph
+
+The graph of air pollution can be updated with a forecast of your choosing by running the `update_graph.py` entrypoint.
+We provide default settings for the forecast from a model fit, but you can customize this by providing a different `instance_id` and `timestamp` via the CLI.
+
+The entrypoint will save a graph for algorithms to be executed on and an overlay PNG to display the forecasts on the web app.
+
 ## Developer guide
 
 ### Style guide

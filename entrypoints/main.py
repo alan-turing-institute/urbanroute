@@ -1,12 +1,13 @@
 """Find the least cost path from source to target by minimising air pollution."""
 
+from pathlib import Path
 from typing import Tuple, List, Dict
 import logging
 import time
 import typer
 import numpy as np
 from fastapi import FastAPI
-from graph_tool.all import load_graph, EdgePropertyMap
+from graph_tool.all import EdgePropertyMap
 from haversine import haversine
 from cleanair.loggers import get_logger
 from routex import astar, mospp
@@ -16,16 +17,18 @@ from urbanroute.geospatial import (
     remove_leaves,
     remove_paths,
 )
+from urbanroute.utils import FileManager
 
 APP = FastAPI()
 logger = get_logger("Shortest path entrypoint")
 logger.setLevel(logging.DEBUG)
 logger.info("Loading graph of London...")
 start = time.time()
-G = load_graph("../graphs/Trafalgar.gt")
+manager = FileManager(Path.joinpath(Path(".."), Path("graphs")))
+G = manager.load_graph_from_file()
 logger.info("Graph loaded in %s seconds.", time.time() - start)
-logger.info("%s nodes and %s edges in the graph.", G.num_vertices, G.num_edges)
-
+logger.info("%s nodes and %s edges in the graph.", G.num_vertices(), G.num_edges())
+G.list_properties()
 # add position property, and add float versions of string edge attributes
 pos = G.new_vertex_property("vector<double>")
 float_length = G.new_edge_property("double")
