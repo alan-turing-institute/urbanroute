@@ -8,7 +8,7 @@ from graph_tool import Graph
 from cleanair.loggers import get_logger
 from cleanair.types import Source
 from urbanroute.geospatial import RoadQuery
-from urbanroute.utils import FileManager
+from urbanroute.utils import FileManager, from_dataframes
 
 
 def main(
@@ -34,6 +34,17 @@ def main(
     logger.info("Connecting to the database.")
     result = RoadQuery(secretfile=secretfile)
 
+    # get the nodes in the graph
+    startnodes = result.query_start_nodes(output_type="df")
+    endnodes = result.query_end_nodes(output_type="df")
+    startnodes = startnodes.rename(columns=dict(startnode="node"))
+    endnodes = endnodes.rename(columns=dict(endnode="node"))
+    logger.info("%s start nodes, %s end nodes", len(startnodes), len(endnodes))
+    nodes_df = startnodes.append(endnodes)
+    nodes_df = nodes_df.drop_duplicates(subset="node")
+    nodes_df = nodes_df.set_index("node")
+    logger.info("%s nodes after removing duplicates", len(nodes_df))
+
     # query the actual predictions to be used as the background
     overlay_sql = result.query_results(instance_id, Source.hexgrid, output_type="sql")
     overlay_df = gpd.GeoDataFrame.from_postgis(
@@ -55,18 +66,10 @@ def main(
     logger.debug("%s rows returned from the result query.", len(gdf))
     logger.debug(gdf)
 
-    # create an empty graph and add edges from the dataframe
-    G = Graph(directed=True)
-    logger.debug("Dataframe columns: %s", gdf.columns)
-    G.add_edge_list(gdf[["startnode", "endnode"]].values, hashed=True)
-    logger.info("Graph has %s edges and %s nodes", G.num_edges(), G.num_vertices())
-
     # add the edge attributes (only distance & pollution for now)
-    logger.info("Creating edge attributes for distance and pollution.")
-    distance = G.new_edge_property("float", vals=gdf["length"])
-    no2 = G.new_edge_property("float", vals=gdf["NO2_mean"])
-    logger.debug("The distance attribute vector is %s", distance)
-    logger.debug("The no2 attribute is %s", no2)
+    nodes_df = nodes_df.reindex(G.vertices())
+    G = from_dataframes(gdf, nodes_df)
+    logger.info("Graph has %s edges and %s nodes", G.num_edges(), G.num_vertices())
 
     # save the graph tools to a file
     logger.info("Saving the graph to file.")

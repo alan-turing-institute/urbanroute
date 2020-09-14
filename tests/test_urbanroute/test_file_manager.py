@@ -12,3 +12,4 @@ def test_save_load_graph(cache_dir, complete_4) -> None:
     loaded_graph = manager.load_graph_from_file(filename=filename)
     assert loaded_graph.num_vertices() == complete_4.num_vertices()
     assert loaded_graph.num_edges() == complete_4.num_edges()
+    assert "five" in loaded_graph.edge_properties
