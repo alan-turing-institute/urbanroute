@@ -3,6 +3,7 @@ from typing import Tuple
 from graph_tool.all import (
     AStarVisitor,
     astar_search,
+    dijkstra_search,
     StopSearch,
     Graph,
     EdgePropertyMap,
@@ -44,14 +45,14 @@ def astar(
     Returns: a list of vertices from the source to the target
     """
     # run A*
-    pred = astar_search(
+    dist, pred = astar_search(
         G,
         weight=edge_attribute,
         source=source,
         visitor=RouteVisitor(target),
         heuristic=lambda v: heuristic(v, target, pos),
-    )[1]
-
+    )
+    print(dist[target])
     # backtrack through the graph to the source
     route = []
     v = target
@@ -62,3 +63,36 @@ def astar(
         v = G.vertex(pred[v])
     route.append(v)
     return route
+
+
+def distances(G: Graph, source: int, edge_attribute: EdgePropertyMap,) -> np.ndarray:
+    """
+    Perform Dijkstra and return distance
+    Args:
+        G: graph
+        source: start vertex
+        target: end vertex (search terminates here)
+        edge_attribute: the edge attribute that defines the cost of an edge
+        heuristic: a function that underestimates the distance from any vertex to the target
+        pos: positional attribute for vertices
+    Returns: distances of vertices from the source 
+    """
+    # run A*
+    dist, paths = dijkstra_search(G, weight=edge_attribute, source=source)
+    return (dist, paths)
+
+
+def neighbour_distances(G, source, edge_attribute):
+    neighbour_filter = G.new_edge_property("bool")
+
+    neighbours = source.out_neighbours()
+    for e in source.out_edges():
+        neighbour_filter[e] = True
+        for f in e.target().out_edges():
+            if f.target() in neighbours:
+                neighbour_filter[f] = True
+
+    G.set_edge_filter(neighbour_filter)
+    dist, _ = dijkstra_search(G, edge_attribute, source)
+    G.set_edge_filter(None)
+    return dist

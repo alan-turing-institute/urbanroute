@@ -9,7 +9,7 @@ from fastapi import FastAPI
 from graph_tool.all import load_graph, EdgePropertyMap
 from haversine import haversine
 from cleanair.loggers import get_logger
-from routex import astar, mospp
+from routex import astar, bidirectional_mospp, mospp
 from urbanroute.geospatial import (
     ellipse_bounding_box,
     coord_match,
@@ -144,7 +144,7 @@ def return_linear_scalarisation(
 
 
 def return_mospp(
-    source_coord: Tuple[float, float], target_coord: Tuple[float, float],
+    source_coord: Tuple[float, float], target_coord: Tuple[float, float]
 ) -> List[Dict[str, str]]:
     """
     Find the least polluted path.
@@ -175,7 +175,7 @@ def return_mospp(
     inside[source] = True
     inside[target] = True
     G.set_vertex_filter(inside)
-
+    # get route
     routes = mospp(G.vertex(source), G.vertex(target), float_length, pollution)
     return [[{"x": x[r], "y": y[r]} for r in route] for route in routes]
 
