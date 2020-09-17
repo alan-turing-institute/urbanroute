@@ -1,8 +1,7 @@
 """Test case useful for benchmarking mospp performance"""
-from graph_tool.all import load_graph, graphviz_draw
-from routex import mospp, astar, bidirectional_mospp
+from graph_tool.all import load_graph
+from routex import mospp
 import numpy as np
-from haversine import haversine
 from urbanroute.geospatial import (
     ellipse_bounding_box,
     coord_match,

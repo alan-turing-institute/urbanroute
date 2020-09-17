@@ -130,7 +130,7 @@ echo "Combine both of these optimisations with maximum graph reduction"
 python3 -m timeit -n 3 -r 2 -s "$SETUP$ALLREMOVALS" "${ELLIPTICAL}mospp(G.vertex(source), G.vertex(target), float_length, pollution, equality_dominates=True, predecessors=2)"
 
 echo "Bidirectional search with both of these optimisations:"
-python3 -m timeit -n 3 -r 2 -s "$SETUP$ALLREMOVALS" "${ELLIPTICAL}bidirectional_mospp(G.vertex(source), G.vertex(target), float_length, pollution)"
+python3 -m timeit -n 3 -r 2 -s "$SETUP" "bidirectional_mospp(G.vertex(source), G.vertex(target), float_length, pollution)"
 #Full stopping condition (removing labels based on Pareto dominance by target)
 #Minimum stopping condition always
 echo "Minimum stopping condition always"

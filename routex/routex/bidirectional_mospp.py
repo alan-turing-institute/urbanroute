@@ -166,7 +166,7 @@ def bidirectional_mospp(
     routes = []
 
     def solution_dominates(a, b):
-        return a[3] and a[0][0] <= b[0][0] and a[0][1] <= b[0][1]
+        return a[3] and b[3] and a[0][0] <= b[0][0] and a[0][1] <= b[0][1]
 
     # reconstruct path from meeting frontier of both searches
     for key, _ in in_resulting_paths.items():
@@ -193,9 +193,14 @@ def bidirectional_mospp(
         "Are all the solutions Pareto optimal?",
         test_pareto_optimal_bidirectional(solution_set),
     )
+    solution_labels = []
     for solution in solution_set:
         # perform reconstruction
         if solution[3]:
             routes.append(construct_path(solution[1], solution[2], source, target))
+            solution_labels.append(solution[0])
+    solution_labels.sort()
+    for s in solution_labels:
+        print(s)
     print("Number of routes:", len(routes))
     return routes

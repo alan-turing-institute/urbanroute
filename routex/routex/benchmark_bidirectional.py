@@ -59,9 +59,9 @@ remove_self_edges(G)
 remove_parallel(G, float_length, pollution)
 remove_edges(G, float_length, pollution)
 remove_paths(G, del_list, pos, float_length, pollution)
-(pollution_bound, distance_bound, pollutions, distances) = remove_vertices(
-    G, source, target, float_length, pollution, del_list
-)
+# (pollution_bound, distance_bound, pollutions, distances) = remove_vertices(
+#    G, source, target, float_length, pollution, del_list
+# )
 print(G.num_vertices(), G.num_edges())
 del_list[source] = True
 del_list[target] = True

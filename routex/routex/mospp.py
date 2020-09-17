@@ -188,7 +188,9 @@ def mospp(
         "Are all the solutions Pareto optimal?",
         test_pareto_optimal(vertex_labels[target]),
     )
+    solution_labels = []
     for label in vertex_labels[target]:
+        solution_labels.append(label[0])
         route.append(target)
         # keep track of our current label
         label_tracker = label
@@ -198,5 +200,8 @@ def mospp(
         route.reverse()
         routes.append(route)
         route = []
+    solution_labels.sort()
+    for s in solution_labels:
+        print(s)
     print("Number of routes:", len(routes))
     return routes
