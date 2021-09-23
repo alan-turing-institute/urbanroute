@@ -15,12 +15,12 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     install_requires=[
-        "cleanair==0.0.1",
-        "geopandas==0.7.0",
-        "networkx==2.4",
-        "osmnx==0.14.1",
-        "sqlalchemy==1.3.11",
-        "fastapi==0.58.1",
+        "geopandas>=0.7.0",
+        "networkx>=2.4.0",
+        "osmnx>=1.1.0",
+        "requests>=2.25.0",
+        "sqlalchemy>=1.3.11",
+        "fastapi>=0.58.1",
     ],
     python_requires=">=3.6",
 )
