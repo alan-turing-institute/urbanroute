@@ -2,11 +2,17 @@
 
 from datetime import datetime
 from io import StringIO
+import json
 from typing import Tuple
 import requests
 from urllib.parse import urljoin
 import typer
+import geopandas as gpd
+import networkx as nx
+import osmnx as ox
 import pandas as pd
+
+from . import geospatial as gs
 
 # URL building strings for urbanair
 URBANAIR_HEXGRID_FORECAST_URL = "https://urbanair.turing.ac.uk/api/v1/air_quality/forecast/hexgrid/"
@@ -20,6 +26,37 @@ LONDON_BOUNDING_BOX = (MIN_LONGITUDE, MIN_LATITUDE, MAX_LONGITUDE, MAX_LATITUDE)
 
 class EmptyDatasetWarning(UserWarning):
     """Raise if a dataset has no data"""
+
+def query_hexgrid_geometries(basic_auth: requests.auth.HTTPBasicAuth, bounding_box: Tuple[float]) -> str:
+    """Query the hexgrid geometries. Json string returned"""
+    params = {
+        "lon_min": bounding_box[0],
+        "lat_min": bounding_box[1],
+        "lon_max": bounding_box[2],
+        "lat_max": bounding_box[3],
+    }
+    geometries_url = urljoin(URBANAIR_HEXGRID_FORECAST_URL, "geometries")
+    text = ""
+    with requests.Session() as session:
+        session.auth = basic_auth
+        response = session.get(geometries_url, params=params)
+        response.raise_for_status()
+        text = response.text
+    return text
+
+def get_hexgrid_geometries_gdf(basic_auth: requests.auth.HTTPBasicAuth, bounding_box: Tuple[float]) -> gpd.GeoDataFrame:
+    """Get a geodataframe of hexgrid cells with geometries"""
+    # get hexgrid geometries
+    geojson_str = query_hexgrid_geometries(basic_auth, bounding_box)
+    geojson_hexgrid = json.loads(geojson_str)
+    feature_list = []
+    for feature in geojson_hexgrid["features"]:
+        # need to assign the hex id to a properties dictionary for geopandas to read geojson
+        feature["properties"] = {"hex_id": feature["hex_id"]}
+        feature_list.append(feature)
+    hexgrid_df = gpd.GeoDataFrame.from_features(feature_list)
+    hexgrid_df.crs = "EPSG:4326"
+    return hexgrid_df
 
 def query_forecast_hexgrid_1hr_csv(
     basic_auth: requests.auth.HTTPBasicAuth,
@@ -47,26 +84,19 @@ def query_forecast_hexgrid_1hr_csv(
         raise EmptyDatasetWarning("No data in CSV file for query_forecast_hexgrid_1hr_csv")
     return text
 
+def get_forecast_hexgrid_1hr_gdf(
+    basic_auth: requests.auth.HTTPBasicAuth,
+    time: datetime,
+    index: int = 0,
+    bounding_box: Tuple[float] = LONDON_BOUNDING_BOX,
+) -> gpd.GeoDataFrame:
+    """Get a geodataframe from the forecast hexgrid 1 hour query with geometries"""
+    hexgrid_df = get_hexgrid_geometries_gdf(basic_auth, bounding_box)
+    csv_str = query_forecast_hexgrid_1hr_csv(basic_auth, time, index=1, bounding_box=bounding_box)
+    forecast_df = pd.read_csv(StringIO(csv_str))
+    joined_df = gpd.GeoDataFrame(forecast_df.merge(hexgrid_df, on="hex_id"), crs="EPSG:4326")
+    return joined_df
+
 def get_bounding_box(lon_min: float, lat_min: float, lon_max: float, lat_max: float) -> Tuple[float]:
-    """Get bounding box"""
+    """Get bounding box incase you forget the order of lats and lons"""
     return (lon_min, lat_min, lon_max, lat_max)
-
-def main(username: str, password: str):
-    # small bounding box for testing
-    lon_min=-0.125
-    lat_min=51.53
-    lon_max=-0.120
-    lat_max=51.534
-    small_bounding_box = get_bounding_box(lon_min, lat_min, lon_max, lat_max)
-
-    # authenticate with password
-    basic_auth = requests.auth.HTTPBasicAuth(username, password)
-
-    # get dataframe from API request
-    time = datetime(2021, 8, 12, 6, 0, 0)
-    csv_str = query_forecast_hexgrid_1hr_csv(basic_auth, time, 0, small_bounding_box)
-    df = pd.read_csv(StringIO(csv_str))
-    print(df)
-
-if __name__=="__main__":
-    typer.run(main)

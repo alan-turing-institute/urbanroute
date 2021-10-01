@@ -11,18 +11,22 @@ def update_cost(  # pylint: disable=too-many-arguments
     G: nx.Graph,
     gdf: gpd.GeoDataFrame,
     edge_df: Optional[gpd.GeoDataFrame] = None,
-    cost_attr: Optional[str] = "cost",
-    weight_attr: Optional[str] = "weight",
-    key_attr: Optional[str] = "key",
+    cost_attr: str = "cost",
+    pollution_attr: str = "NO2_mean",
+    weight_attr: str = "weight",
+    key_attr: str = "key",
+    source: str = "u",
+    target: str = "v",
+    key: str = "key",
 ) -> nx.Graph:
     """Update the cost of edges the graph from a geo dataframe.
 
     Args:
         G: Input graph. Must have a geometry attribute on the edges.
         gdf: Must contain geometry column and value column.
-        edge_df: The edge geo dataframe of the graph.
 
     Other Args:
+        edge_df: The edge geo dataframe of the graph.
         cost_attr: Name of the cost function.
         weight_attr: Name of the weight function.
         key_attr: Name of the key for multi graphs.
@@ -38,29 +42,32 @@ def update_cost(  # pylint: disable=too-many-arguments
 
         # # create a geodataframe
         edge_df = ox.graph_to_gdfs(G, nodes=False, fill_edge_geometry=True)
-        edge_df = edge_df.rename(columns=dict(u="source", v="target"))
+        edge_df = edge_df.rename(columns=dict(u=source, v=target))
 
     # check the crs of geometries
-    if edge_df.crs is None and not gdf.crs is None:
+    if not getattr(edge_df, "crs", None) and getattr(gdf, "crs", None):
+        # set the coordinate system of the edges to be the same as the pollution
         edge_df.crs = gdf.crs
-    elif gdf.crs is None and not edge_df.crs is None:
+    elif not getattr(gdf, "crs", None) and getattr(edge_df, "crs", None):
+        # set hte coordinate system of the pollution to be the same as the edges
         gdf.crs = edge_df.crs
+    elif not getattr(edge_df, "crs", None) and not getattr(gdf, "crs", None):
+        raise ValueError("The CRS for both edges and pollution geometries is not set")
+    
+    if gdf.crs != edge_df.crs:
+        raise ValueError(f"The CRS of edges ({getattr(edge_df, 'crs', None)}) and pollution ({getattr(gdf, 'crs', None)}) geometries do not match")
 
     # get intersection of the geodataframes
     logging.info("%s rows in edge dataframe", len(edge_df))
     join = gpd.sjoin(edge_df, gdf, how="left")
     logging.info("%s rows in join dataframe", len(join))
 
-    edges_in_join = zip(join["source"], join["target"])
-    for u, v in G.edges():
-        assert (u, v) in edges_in_join or (v, u) in edges_in_join
-
     # group the edges and take average pollution
-    for key, value in (
-        join.groupby(["source", "target", "key"])[cost_attr].mean().iteritems()
+    for index, value in (
+        join.groupby(join.index)[pollution_attr].mean().iteritems()
     ):
-        i, j, k = key[0], key[1], key[2]
-        G[i][j][k]["gamma"] = value if value >= 0 else 0
+        i, j, k = index[0], index[1], index[2]
+        G[i][j][k][pollution_attr] = value if value >= 0 else 0
         G[i][j][k][cost_attr] = value * G[i][j][k][weight_attr]
 
     return G

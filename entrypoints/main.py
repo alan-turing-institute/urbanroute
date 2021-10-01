@@ -9,13 +9,8 @@ from fastapi import FastAPI
 from graph_tool.all import load_graph, EdgePropertyMap
 from haversine import haversine
 from cleanair.loggers import get_logger
-from routex import astar, mospp
-from urbanroute.geospatial import (
-    ellipse_bounding_box,
-    coord_match,
-    remove_leaves,
-    remove_paths,
-)
+from routex import astar, mospp, remove_leaves, remove_paths
+from urbanroute.geospatial import ellipse_bounding_box, coord_match
 
 APP = FastAPI()
 logger = get_logger("Shortest path entrypoint")

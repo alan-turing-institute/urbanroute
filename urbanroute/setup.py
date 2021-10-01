@@ -16,6 +16,7 @@ setuptools.setup(
     ],
     install_requires=[
         "geopandas>=0.7.0",
+        "haversine>=2.5.1",
         "networkx>=2.4.0",
         "osmnx>=1.1.0",
         "requests>=2.25.0",
