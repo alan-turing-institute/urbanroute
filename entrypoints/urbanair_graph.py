@@ -13,47 +13,53 @@ import typer
 from urbanroute import get_bounding_box, get_forecast_hexgrid_1hr_gdf
 from urbanroute import geospatial as gs
 
-class LondonaqName(str, Enum):
-    """Dataset names"""
+class LondonaqTimestamp(Enum):
+    """Timestamps of the forecasts for London air quality forecasts"""
 
-    tiny = "laqtiny"
-    kx = "laqkx"
+    A = datetime(2021, 10, 13, 8, 0, 0, tzinfo=timezone.utc)  # 9am BST
 
-class LondonaqAddress(Enum):
-    """Addresses for datasets"""
+class LondonaqLocation(str, Enum):
+    """Names of locations that the London air quality graph is centered upon"""
 
-    tiny = "King's Cross"
+    bb = "Big Ben"
     kx = "King's Cross"
-
-def londonaq_tiny_dataset(username: str, password: str, csv_output_dir: Path):
-    # small bounding box for testing
-    lon_min=-0.125
-    lat_min=51.53
-    lon_max=-0.120
-    lat_max=51.534
-    small_bounding_box = get_bounding_box(lon_min, lat_min, lon_max, lat_max)
-    directed_multigraph = ox.graph.graph_from_bbox(lat_max, lat_min, lon_max, lon_min)
+    tiny = "King's Cross"
+    ro = "Royal Observatory Greenwich"
+    ws = "Wembley Stadium"
 
 
+class LondonaqLocationShort(str, Enum):
+    """Short codes for londonaq locations"""
 
-def main(londonaq_name: LondonaqName, username: str, password: str, csv_output_dir: Path):
+    bb = "bb"
+    kx = "kx"
+    tiny = "tiny"
+    ro = "ro"
+    ws = "ws"
 
-    if londonaq_name == LondonaqName.tiny:
+def main(name: LondonaqLocationShort, timestamp_id: str, username: str, password: str, csv_output_dir: Path):
+
+    timestamp = LondonaqTimestamp[timestamp_id]
+    csv_output_dir.mkdir(exist_ok=True, parents=False)
+
+    if name == LondonaqLocationShort.tiny:
         distance = 200
     else:
         distance = 5000
-    address = LondonaqAddress[londonaq_name.name].value
+    address = LondonaqLocation[name.name].value
     center_point = ox.geocoder.geocode(query=address)
     north, south, east, west = ox.utils_geo.bbox_from_point(center_point, distance)
     bounding_box = get_bounding_box(west, south, east, north)
     directed_multigraph = ox.graph_from_bbox(north, south, east, west)
+    center_node = ox.distance.nearest_nodes(directed_multigraph, center_point[0], center_point[1])
+    if not center_node in directed_multigraph:
+        raise ValueError(f"{center_node} is the center node but is not in the returned graph.")
 
     # authenticate with password
     basic_auth = requests.auth.HTTPBasicAuth(username, password)
 
     # get dataframe from API request
-    time = datetime(2021, 10, 13, 8, 0, 0, tzinfo=timezone.utc)
-    pollution_df = get_forecast_hexgrid_1hr_gdf(basic_auth, time, index=1, bounding_box=bounding_box)
+    pollution_df = get_forecast_hexgrid_1hr_gdf(basic_auth, timestamp.value, index=1, bounding_box=bounding_box)
     print(pollution_df)
 
     # convert directed into undirected graph if the geometries of two arcs match
@@ -62,29 +68,15 @@ def main(londonaq_name: LondonaqName, username: str, password: str, csv_output_d
     assert G.number_of_edges() == undirected_multi_graph.number_of_edges()
     print(nx.info(G))
 
-    # convert the undirected multi graph into an undirected simple graph with no loops or multi edges
-
-
-    for u, v, k, data in G.edges(data=True, keys=True):
-        assert "NO2_mean" in data
-        assert data["NO2_mean"] > 0
-        assert data["cost"] == data["NO2_mean"] * data["length"]
-
-    # G.remove_edges_from(nx.selfloop_edges(G))
     edges_df = nx.to_pandas_edgelist(G, source="source", target="target")
     nodes_df = pd.DataFrame.from_dict(dict(G.nodes(data=True)), orient='index')
-    print(edges_df.loc[edges_df.key > 0])
-    print(nodes_df)
+    nodes_df["is_depot"] = nodes_df.index == center_node
+    assert nodes_df.is_depot.sum() == 1
+    prefix = "laq" + name.value + timestamp.name
 
-    csv_output_dir.mkdir(exist_ok=True, parents=False)
-    prefix = londonaq_name.value + "A"
+    # output is a CSV file representing an undirected simple graph
     edges_df.to_csv(csv_output_dir / (prefix+ "_edges.csv"), index=False)
     nodes_df.to_csv(csv_output_dir / (prefix + "_nodes.csv"), index=True, index_label="node")
-
-# output is a CSV file representing an undirected simple graph
-
-# convert the multi directed graph into a simple undirected graph
-# save the simple undirected graph as a CSV file
 
 if __name__=="__main__":
     typer.run(main)
