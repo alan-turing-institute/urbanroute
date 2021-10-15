@@ -3,6 +3,7 @@
 from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
+from networkx.classes.function import neighbors
 import requests
 
 import networkx as nx
@@ -37,6 +38,9 @@ class LondonaqLocationShort(str, Enum):
     ro = "ro"
     ws = "ws"
 
+def num_non_leaf_neighbors(G: nx.Graph, vertex: int):
+    return len([v for v, d in G.degree(G.neighbors(vertex)) if d > 1])
+
 def main(name: LondonaqLocationShort, timestamp_id: str, username: str, password: str, csv_output_dir: Path):
 
     timestamp = LondonaqTimestamp[timestamp_id]
@@ -51,9 +55,29 @@ def main(name: LondonaqLocationShort, timestamp_id: str, username: str, password
     north, south, east, west = ox.utils_geo.bbox_from_point(center_point, distance)
     bounding_box = get_bounding_box(west, south, east, north)
     directed_multigraph = ox.graph_from_bbox(north, south, east, west)
+
+    # the root vertex should be close to the center of the graph, must have degree at least 2,
+    # and at least two of the root's neighbours must have degree at least 2
     center_node = ox.distance.nearest_nodes(directed_multigraph, center_point[0], center_point[1])
     if not center_node in directed_multigraph:
         raise ValueError(f"{center_node} is the center node but is not in the returned graph.")
+    root_vertex = center_node
+    root_found = False
+    attempted_roots = []
+    for i in range(directed_multigraph.number_of_nodes()):
+        deg = nx.degree(directed_multigraph, root_vertex)
+        if deg >= 2 and num_non_leaf_neighbors(directed_multigraph, root_vertex) >= 2:
+            root_found = True
+            break
+        if deg == 1:
+            print("Unsuitible vertex: degree 1")
+            attempted_roots.append(root_vertex)
+        # try a neighbor of the current root
+        for v in directed_multigraph.neighbors(root_vertex):
+            if v not in attempted_roots:
+                root_vertex = v
+    if not root_found:
+        raise ValueError("No suitable roots found in graph")
 
     # authenticate with password
     basic_auth = requests.auth.HTTPBasicAuth(username, password)
@@ -70,7 +94,7 @@ def main(name: LondonaqLocationShort, timestamp_id: str, username: str, password
 
     edges_df = nx.to_pandas_edgelist(G, source="source", target="target")
     nodes_df = pd.DataFrame.from_dict(dict(G.nodes(data=True)), orient='index')
-    nodes_df["is_depot"] = nodes_df.index == center_node
+    nodes_df["is_depot"] = nodes_df.index == root_vertex
     assert nodes_df.is_depot.sum() == 1
     prefix = "laq" + name.value + timestamp.name
 
