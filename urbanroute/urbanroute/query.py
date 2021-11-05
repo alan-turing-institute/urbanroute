@@ -3,10 +3,9 @@
 from datetime import datetime
 from io import StringIO
 import json
-from typing import Tuple
+from typing import Any, List, Optional, Tuple
 import requests
 from urllib.parse import urljoin
-import typer
 import geopandas as gpd
 import networkx as nx
 import osmnx as ox
@@ -100,3 +99,73 @@ def get_forecast_hexgrid_1hr_gdf(
 def get_bounding_box(lon_min: float, lat_min: float, lon_max: float, lat_max: float) -> Tuple[float]:
     """Get bounding box incase you forget the order of lats and lons"""
     return (lon_min, lat_min, lon_max, lat_max)
+
+def vertices_ordered_by_shortest_path(
+    G: nx.Graph, source: Any, weight: Optional[str] = None
+) -> List[Any]:
+    """Get a list of vertices ordered by the shortest path from the source"""
+    distances = nx.shortest_path_length(G, source=source, weight=weight)
+    return list(node for node, _ in sorted(distances.items(), key=lambda x: x[1]))
+
+
+def num_non_leaf_neighbors(G: nx.Graph, vertex: int):
+    """Get the number of non-leaf neighbors"""
+    return len([v for v, d in G.degree(G.neighbors(vertex)) if d > 1])
+
+
+def is_valid_root(G: nx.Graph, vertex: Any) -> bool:
+    """Is the given vertex a valid root vertex?"""
+    return nx.degree(G, vertex) >= 2 and num_non_leaf_neighbors(G, vertex) >= 2
+
+
+class RootVertexNotFoundException(nx.NodeNotFound):
+    """Root vertex not found exception"""
+
+
+def find_non_trivial_root_vertex(
+    G: nx.Graph, start_vertex: Any, weight: Optional[str] = None
+) -> Any:
+    """Find a potential root vertex that is not a leaf and has at least two non-leaf neighbors"""
+    for vertex in vertices_ordered_by_shortest_path(G, start_vertex, weight=weight):
+        if is_valid_root(G, vertex):
+            return vertex
+    raise RootVertexNotFoundException(
+        "No non-leaf vertices with at least two non-leaf neighbors were found in the graph"
+    )
+
+def frames_from_urbanair_api(
+    username: str,
+    password: str,
+    address: str,
+    distance: int,
+    timestamp: datetime,
+) -> Tuple[pd.DataFrame]:
+    """Queries the urbanair API and osmnx to get the edge and node dataframes of a graph"""    
+    center_point = ox.geocoder.geocode(query=address)
+    north, south, east, west = ox.utils_geo.bbox_from_point(center_point, distance)
+    bounding_box = get_bounding_box(west, south, east, north)
+    directed_multigraph = ox.graph_from_bbox(north, south, east, west)
+
+    # the root vertex should be close to the center of the graph, must have degree at least 2,
+    # and at least two of the root's neighbours must have degree at least 2
+    center_node = ox.distance.nearest_nodes(directed_multigraph, center_point[0], center_point[1])
+    if not center_node in directed_multigraph:
+        raise ValueError(f"{center_node} is the center node but is not in the returned graph.")
+    root_vertex = find_non_trivial_root_vertex(directed_multigraph, center_node, weight="length")
+
+    # authenticate with password
+    basic_auth = requests.auth.HTTPBasicAuth(username, password)
+
+    # get dataframe from API request
+    pollution_df = get_forecast_hexgrid_1hr_gdf(basic_auth, timestamp, index=1, bounding_box=bounding_box)
+
+    # convert directed into undirected graph if the geometries of two arcs match
+    undirected_multi_graph = ox.get_undirected(directed_multigraph)
+    G = gs.update_cost(undirected_multi_graph, pollution_df, weight_attr="length")
+    assert G.number_of_edges() == undirected_multi_graph.number_of_edges()
+
+    edges_df = nx.to_pandas_edgelist(G, source="source", target="target")
+    nodes_df = pd.DataFrame.from_dict(dict(G.nodes(data=True)), orient='index')
+    nodes_df["is_depot"] = nodes_df.index == root_vertex
+    assert nodes_df.is_depot.sum() == 1
+    return edges_df, nodes_df
