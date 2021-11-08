@@ -139,12 +139,13 @@ def frames_from_urbanair_api(
     address: str,
     distance: int,
     timestamp: datetime,
+    network_type: str = "drive",
 ) -> Tuple[pd.DataFrame]:
     """Queries the urbanair API and osmnx to get the edge and node dataframes of a graph"""    
     center_point = ox.geocoder.geocode(query=address)
     north, south, east, west = ox.utils_geo.bbox_from_point(center_point, distance)
     bounding_box = get_bounding_box(west, south, east, north)
-    directed_multigraph = ox.graph_from_bbox(north, south, east, west)
+    directed_multigraph = ox.graph_from_bbox(north, south, east, west, network_type=network_type)
 
     # the root vertex should be close to the center of the graph, must have degree at least 2,
     # and at least two of the root's neighbours must have degree at least 2
@@ -157,7 +158,9 @@ def frames_from_urbanair_api(
     basic_auth = requests.auth.HTTPBasicAuth(username, password)
 
     # get dataframe from API request
+    print("Getting air quality forecast around", address, "for", timestamp.isoformat(), "...")
     pollution_df = get_forecast_hexgrid_1hr_gdf(basic_auth, timestamp, index=1, bounding_box=bounding_box)
+    print("...Done for", address)
 
     # convert directed into undirected graph if the geometries of two arcs match
     undirected_multi_graph = ox.get_undirected(directed_multigraph)
