@@ -3,7 +3,7 @@
 from datetime import datetime
 from io import StringIO
 import json
-from typing import Any, List, Optional, Tuple
+from typing import Any, List, Optional, Set, Tuple
 import requests
 from urllib.parse import urljoin
 import geopandas as gpd
@@ -101,11 +101,27 @@ def get_bounding_box(lon_min: float, lat_min: float, lon_max: float, lat_max: fl
     return (lon_min, lat_min, lon_max, lat_max)
 
 def vertices_ordered_by_shortest_path(
-    G: nx.Graph, source: Any, weight: Optional[str] = None
+    G: nx.Graph, source: Any, append_unreachable: bool = True, weight: Optional[str] = None
 ) -> List[Any]:
-    """Get a list of vertices ordered by the shortest path from the source"""
+    """Get a list of vertices ordered by the shortest path from the source
+
+    Args:
+        G: Networkx graph
+        source: Vertex to start shortest path search from
+        append_unreachable: If true, vertices that are unreachable from the source are appended to the end of the list
+            in no particular order
+        weight: Name of the weight attribute. If None, edge weight is one.
+
+    Returns:
+        List of vertices in the graph ordered by distance from source vertex.
+    """
     distances = nx.shortest_path_length(G, source=source, weight=weight)
-    return list(node for node, _ in sorted(distances.items(), key=lambda x: x[1]))
+    ordered_nodes = []
+    for node, _ in sorted(distances.items(), key=lambda x: x[1]):
+        ordered_nodes.append(node)
+    if append_unreachable == True:
+        ordered_nodes.extend(set(G.nodes()) - set(ordered_nodes))
+    return ordered_nodes
 
 
 def num_non_leaf_neighbors(G: nx.Graph, vertex: int):
@@ -121,13 +137,23 @@ def is_valid_root(G: nx.Graph, vertex: Any) -> bool:
 class RootVertexNotFoundException(nx.NodeNotFound):
     """Root vertex not found exception"""
 
+def largest_biconnected_component(G: nx.Graph) -> Set:
+    """Get the largest biconnected component"""
+    largest = {}
+    size = 0
+    for component in nx.biconnected_components(G):
+        if len(component) > size:
+            largest = component
+            size = len(component)
+    return largest
 
 def find_non_trivial_root_vertex(
     G: nx.Graph, start_vertex: Any, weight: Optional[str] = None
 ) -> Any:
     """Find a potential root vertex that is not a leaf and has at least two non-leaf neighbors"""
+    largest = largest_biconnected_component(nx.to_undirected(G))
     for vertex in vertices_ordered_by_shortest_path(G, start_vertex, weight=weight):
-        if is_valid_root(G, vertex):
+        if is_valid_root(G, vertex) and vertex in largest:
             return vertex
     raise RootVertexNotFoundException(
         "No non-leaf vertices with at least two non-leaf neighbors were found in the graph"
