@@ -8,6 +8,7 @@ import requests
 from urllib.parse import urljoin
 import geopandas as gpd
 import networkx as nx
+import numpy as np
 import osmnx as ox
 import pandas as pd
 
@@ -123,6 +124,51 @@ def vertices_ordered_by_shortest_path(
         ordered_nodes.extend(set(G.nodes()) - set(ordered_nodes))
     return ordered_nodes
 
+def vertices_ordered_by_betweenness_centrality(
+    G: nx.Graph, weight: Optional[str] = None
+) -> List[Any]:
+    """Get a list of vertices ordered by the betweenness centrality
+
+    Args:
+        G: Undirected input graph
+        weight: Name of weight attribute. If None, edge weight is one
+
+    Returns:
+        List of vertices ordered by the betweenness centrality
+
+    Notes:
+        Only vertices of degree 2 or greater are considered in the subset betweenness centrality    
+    """
+    sources = [v for v in G.nodes() if G.degree(v) > 2]
+    node_betweenness = nx.betweenness_centrality_subset(G, sources, sources, weight=weight)
+    ordered_nodes = []
+    for node, _ in sorted(node_betweenness.items(), key=lambda x: x[1], reverse=True):
+        ordered_nodes.append(node)
+    return ordered_nodes
+
+def vertices_ordered_by_coordinate_centrality(
+    G: nx.Graph
+) -> List[Any]:
+    """Vertex list ordered by the Euclidean distance to the center of the coordinates of the vertices
+
+    Args:
+        G: networkx graph
+
+    Returns:
+        List of vertices ordered by distance to the coordinate center
+
+    Notes:
+        The center is chosen by taking the mean of all vertex coordinates
+    """
+    vertex_data = list(map(lambda x: dict(node=x[0], **x[1]), G.nodes(data=True)))
+    nodes_df = pd.DataFrame(vertex_data)
+    nodes_df = nodes_df.set_index("node")
+
+    # get mean of x and y coordinate
+    x, y = nodes_df["x"].mean(), nodes_df["y"].mean()
+    # order by Euclidean distance to mean
+    closest_to_mean = list(nodes_df.iloc[(np.sqrt((nodes_df['x']-x)**2 + (nodes_df["y"] - y) ** 2)).argsort()].index)
+    return closest_to_mean
 
 def num_non_leaf_neighbors(G: nx.Graph, vertex: int):
     """Get the number of non-leaf neighbors"""
@@ -147,12 +193,11 @@ def largest_biconnected_component(G: nx.Graph) -> Set:
             size = len(component)
     return largest
 
-def find_non_trivial_root_vertex(
-    G: nx.Graph, start_vertex: Any, weight: Optional[str] = None
-) -> Any:
+def find_non_trivial_root_vertex(G: nx.Graph, vertex_ordering: List) -> Any:
     """Find a potential root vertex that is not a leaf and has at least two non-leaf neighbors"""
     largest = largest_biconnected_component(nx.to_undirected(G))
-    for vertex in vertices_ordered_by_shortest_path(G, start_vertex, weight=weight):
+    # for vertex in vertices_ordered_by_shortest_path(G, start_vertex, weight=weight):
+    for vertex in vertex_ordering:
         if is_valid_root(G, vertex) and vertex in largest:
             return vertex
     raise RootVertexNotFoundException(
@@ -166,6 +211,7 @@ def frames_from_urbanair_api(
     distance: int,
     timestamp: datetime,
     network_type: str = "drive",
+    root_priority: str = "betweenness_centrality",
 ) -> Tuple[pd.DataFrame]:
     """Queries the urbanair API and osmnx to get the edge and node dataframes of a graph"""    
     center_point = ox.geocoder.geocode(query=address)
@@ -175,10 +221,13 @@ def frames_from_urbanair_api(
 
     # the root vertex should be close to the center of the graph, must have degree at least 2,
     # and at least two of the root's neighbours must have degree at least 2
-    center_node = ox.distance.nearest_nodes(directed_multigraph, center_point[0], center_point[1])
-    if not center_node in directed_multigraph:
-        raise ValueError(f"{center_node} is the center node but is not in the returned graph.")
-    root_vertex = find_non_trivial_root_vertex(directed_multigraph, center_node, weight="length")
+    if root_priority == "betweenness_centrality":
+        vertex_ordering = vertices_ordered_by_betweenness_centrality(directed_multigraph, weight="length")
+    elif root_priority == "coordinate_centrality":
+        vertex_ordering = vertices_ordered_by_coordinate_centrality(directed_multigraph)
+    else:
+        raise ValueError("'betweenness_centrality' and 'coordinate_centrality' are the only valid options for root_priority")
+    root_vertex = find_non_trivial_root_vertex(directed_multigraph, vertex_ordering)
 
     # authenticate with password
     basic_auth = requests.auth.HTTPBasicAuth(username, password)
