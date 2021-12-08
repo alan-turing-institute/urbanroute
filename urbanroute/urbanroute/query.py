@@ -212,7 +212,7 @@ def frames_from_urbanair_api(
     timestamp: datetime,
     network_type: str = "drive",
     root_priority: str = "betweenness_centrality",
-) -> Tuple[pd.DataFrame]:
+) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """Queries the urbanair API and osmnx to get the edge and node dataframes of a graph"""    
     center_point = ox.geocoder.geocode(query=address)
     north, south, east, west = ox.utils_geo.bbox_from_point(center_point, distance)
@@ -246,4 +246,4 @@ def frames_from_urbanair_api(
     nodes_df = pd.DataFrame.from_dict(dict(G.nodes(data=True)), orient='index')
     nodes_df["is_depot"] = nodes_df.index == root_vertex
     assert nodes_df.is_depot.sum() == 1
-    return edges_df, nodes_df
+    return edges_df, nodes_df, pollution_df
