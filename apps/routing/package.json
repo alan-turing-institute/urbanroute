@@ -9,6 +9,6 @@
   "author": "James Craster, Patrick O'Hara and others",
   "license": "UNLICENSED",
   "dependencies": {
-    "semantic-ui": "^2.4.2"
+    "semantic-ui": "^2.5.0"
   }
 }
